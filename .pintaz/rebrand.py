@@ -148,7 +148,7 @@ def phrase_rules(up_id: str, launcher: bool):
         (re.compile(r"ArtCraft on \{name\}"), lambda m: "{name}"),
         (re.compile(r"Visit getartcraft\.com"), lambda m: "Visit the project page"),
         (re.compile(r'tl!\("Discord"\)'), lambda m: 'tl!("Help")'),
-        (re.compile(r'(?<![\w(])"Discord"'), lambda m: '"Help"'),  # bare button label; the link goes to GitHub issues
+        (re.compile(r'(?<!\w)"Discord"'), lambda m: '"Help"'),  # bare button label; the link goes to GitHub issues
         (re.compile(r"ArtCraft apps\b"), lambda m: "Z apps"),
         (re.compile(r"ArtCraft(?=[A-Z][a-z])(?!Launcher)"), lambda m: "Z"),  # identifiers: ArtCraftApi -> ZApi, ArtCraftInstallDirDlg -> ZInstallDirDlg
     ]
@@ -226,6 +226,9 @@ def transform_text(text: str, up_id: str, launcher: bool, path: Path) -> str:
         # translated text: no ArtCraft name, and the old Discord links now go to GitHub
         text = re.sub(r"ArtCraft Z Apps|ArtCraft", "Z", text).replace("Discord", "GitHub")
     text = text.replace("ArtCraft Z Apps", "Z Apps")
+    if path.suffix == ".rs":
+        # every community link now opens our GitHub issues: no label may still promise a Discord
+        text = _STR.sub(lambda m: re.sub(r"ArtCraft Discord|\bDiscord\b", "GitHub", m.group(0)), text)
     # an ArtCraft "A" mark hard-coded as a path (DesignCraft): our Z in the same view box
     text = re.sub(r'(const MARK_PATH: &str = )"[^"]*"', lambda m: m.group(1) + '"M10,0H106V20L40,77H106V97H10V77L76,20H10Z"', text)
     if path.suffix == ".wxs":

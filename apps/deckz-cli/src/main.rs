@@ -74,7 +74,7 @@ fn main() -> ExitCode {
         Some("mcp") => report(mcp(rest)),
         Some("links") => {
             use deckz_engine::links::*;
-            outln!("Discord   {DISCORD}\nWebsite   {WEBSITE}\nApp page  {APP_PAGE}\nGitHub    {GITHUB}");
+            outln!("GitHub   {DISCORD}\nWebsite   {WEBSITE}\nApp page  {APP_PAGE}\nGitHub    {GITHUB}");
             ExitCode::SUCCESS
         }
         _ => {
