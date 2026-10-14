@@ -31,7 +31,14 @@ jobs:
           up=$(git rev-parse upstream/main)
           if git merge-base --is-ancestor "$up" HEAD; then echo "already up to date with upstream $up"; exit 0; fi
           branch="upstream-sync/${up:0:9}"
-          if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then echo "branch $branch already exists"; exit 0; fi
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
+            echo "branch $branch already exists"
+            if [ -z "$(gh pr list --head "$branch" --state all --json number --jq '.[].number')" ]; then
+              gh pr create --base main --head "$branch" --title "Upstream sync: @UPREPO@ ${up:0:9}" \
+                --body "Upstream storytold/@UPREPO@ at $up, re-branded by .pintaz/rebrand.py. Read .pintaz/rebrand-report.txt, merge, then run Release Z by hand."
+            fi
+            exit 0
+          fi
           cp -r .pintaz /tmp/pintaz
           git checkout --quiet -b work "$up"
           # icons come from the committed masters in .pintaz/icons, so these fonts are only a fallback

@@ -115,6 +115,12 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           key: release-z-macos-universal
+      - name: Tools the packaging script expects (resvg for the DMG background)
+        run: |
+          if grep -q "resvg" packaging/macos/package.sh; then
+            v=$(grep -o "resvg --locked --version [0-9.]*" packaging/macos/package.sh | head -1 | awk '{print $NF}')
+            cargo install resvg --locked ${v:+--version $v}
+          fi
       - name: Build and package (ad-hoc signed, not notarized)
         run: packaging/macos/package.sh --arch universal
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

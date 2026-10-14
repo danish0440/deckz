@@ -148,6 +148,7 @@ def phrase_rules(up_id: str, launcher: bool):
         (re.compile(r"ArtCraft on \{name\}"), lambda m: "{name}"),
         (re.compile(r"Visit getartcraft\.com"), lambda m: "Visit the project page"),
         (re.compile(r'tl!\("Discord"\)'), lambda m: 'tl!("Help")'),
+        (re.compile(r'(?<![\w(])"Discord"'), lambda m: '"Help"'),  # bare button label; the link goes to GitHub issues
         (re.compile(r"ArtCraft apps\b"), lambda m: "Z apps"),
         (re.compile(r"ArtCraft(?=[A-Z][a-z])(?!Launcher)"), lambda m: "Z"),  # identifiers: ArtCraftApi -> ZApi, ArtCraftInstallDirDlg -> ZInstallDirDlg
     ]
@@ -450,6 +451,8 @@ def replace_brand_assets(root: Path, zname: str, zid: str):
     zb = root / "assets" / "z-brand"
     zb.mkdir(parents=True, exist_ok=True)
     master = master_icon(zid if zid == "appz" else zid)
+    # the upstream wordmark said "ArtCraft" (the suite); ours says "Z Apps" (AppZ keeps its own name)
+    mark_text = zname if zid == "appz" else "Z Apps"
     for p in sorted(bd.iterdir()):
         if p.name == "LICENSE-brand.txt":
             continue
@@ -457,7 +460,7 @@ def replace_brand_assets(root: Path, zname: str, zid: str):
         dst = zb / stem
         if p.suffix == ".svg":
             if "logo" in stem:
-                dst.write_text(wordmark_svg(zname, "#FFFFFF" if "white" in stem else "#1F4D3A"), encoding="utf-8")
+                dst.write_text(wordmark_svg(mark_text, "#FFFFFF" if "white" in stem else "#1F4D3A"), encoding="utf-8")
             else:
                 dst.write_text(icon_svg("appz" if zid == "appz" else zid), encoding="utf-8")
         elif p.suffix == ".png":
@@ -468,7 +471,7 @@ def replace_brand_assets(root: Path, zname: str, zid: str):
                 im = Image.new("RGBA", size, (0, 0, 0, 0))
                 dr = ImageDraw.Draw(im)
                 f = ImageFont.truetype(str(FONT_SERIF_BOLD), max(10, int(size[1] * 0.8)))
-                dr.text((0, size[1] / 2), zname, font=f, fill=(255, 255, 255) if "white" in stem else PALETTE["jade"], anchor="lm")
+                dr.text((0, size[1] / 2), mark_text, font=f, fill=(255, 255, 255) if "white" in stem else PALETTE["jade"], anchor="lm")
                 im.save(dst)
             elif "black" in stem:
                 # monochrome template icon (macOS menu bar): black Z on transparent
