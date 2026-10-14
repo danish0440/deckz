@@ -345,8 +345,9 @@ FONT_SERIF_BOLD = Path(os.environ.get("Z_FONT_SERIF", "C:/Windows/Fonts/georgiab
 FONT_SANS_BOLD = Path(os.environ.get("Z_FONT_SANS", "C:/Windows/Fonts/arialbd.ttf"))
 
 
-def write_like(src_img, path: Path):
-    """Overwrite an existing image with the Z icon, same size and format."""
+def write_like(src_img, path: Path, key: str = ""):
+    """Overwrite an existing image with the Z icon, same size and format. With `key` (the zid) the
+    resized PNG is cached in icons/sized/, so every machine writes byte-identical files."""
     from PIL import Image
     ext = path.suffix.lower()
     if ext == ".png":
@@ -355,7 +356,14 @@ def write_like(src_img, path: Path):
                 size = old.size
         except Exception:
             size = (512, 512)
+        cache = HERE / "icons" / "sized" / f"{key}-{size[0]}x{size[1]}.png" if key else None
+        if cache is not None and cache.exists():
+            shutil.copyfile(cache, path)
+            return
         src_img.resize(size, Image.LANCZOS).save(path, format="PNG")
+        if cache is not None:
+            cache.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(path, cache)
     elif ext == ".ico":
         sizes = [(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
         src_img.resize((256, 256), Image.LANCZOS).save(path, format="ICO", sizes=sizes)
@@ -427,14 +435,14 @@ def replace_icons(root: Path, zid: str, launcher: bool):
         for p in walk(d):
             ext = p.suffix.lower()
             if ext in (".png", ".ico", ".icns", ".jpg", ".bmp"):
-                write_like(master, p)
+                write_like(master, p, zid)
             elif ext == ".svg":
                 p.write_text(icon_svg(zid, "small" in p.name), encoding="utf-8")
     if launcher:
         d = root / "assets" / "app-icons"
         if d.exists():
             for p in d.glob("*.png"):
-                write_like(master_icon(p.stem), p)
+                write_like(master_icon(p.stem), p, p.stem)
     # any other picture named after an icon at the top of packaging/ (e.g. DMG backgrounds stay)
     readme = root / "assets" / "app-icon" / "README.md"
     if readme.exists():
