@@ -220,7 +220,7 @@ def transform_text(text: str, up_id: str, launcher: bool, path: Path) -> str:
         out.append(tx(line))
     text = "\n".join(out)
     if path.suffix == ".tsv":
-        text = fix_tsv(text).replace("ArtCraft", "Upstream")
+        text = fix_tsv(text).replace("ArtCraft", "Upstream").replace("Discord", "GitHub")
     posix = path.as_posix()
     if path.suffix != ".tsv" and ("/i18n" in posix or "/locales/" in posix or "/locale/" in posix or path.stem in ("i18n", "l10n")):
         # translated text: no ArtCraft name, and the old Discord links now go to GitHub
