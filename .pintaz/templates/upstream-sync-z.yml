@@ -33,8 +33,8 @@ jobs:
           branch="upstream-sync/${up:0:9}"
           if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
             echo "branch $branch already exists"
-            if [ -z "$(gh pr list --head "$branch" --state all --json number --jq '.[].number')" ]; then
-              gh pr create --base main --head "$branch" --title "Upstream sync: @UPREPO@ ${up:0:9}" \
+            if [ -z "$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$branch" --state all --json number --jq '.[].number')" ]; then
+              gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" --title "Upstream sync: @UPREPO@ ${up:0:9}" \
                 --body "Upstream storytold/@UPREPO@ at $up, re-branded by .pintaz/rebrand.py. Read .pintaz/rebrand-report.txt, merge, then run Release Z by hand."
             fi
             exit 0
@@ -50,5 +50,5 @@ jobs:
           # one merge commit: parents = our main + upstream, tree = upstream re-branded
           commit=$(git commit-tree "$tree" -p origin/main -p "$up" -m "Merge upstream @UPREPO@ ${up:0:9} and re-apply rebrand.py")
           git push --quiet origin "$commit:refs/heads/$branch"
-          gh pr create --base main --head "$branch" --title "Upstream sync: @UPREPO@ ${up:0:9}" \
+          gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" --title "Upstream sync: @UPREPO@ ${up:0:9}" \
             --body "Upstream storytold/@UPREPO@ at $up, re-branded by .pintaz/rebrand.py. Read .pintaz/rebrand-report.txt, merge, then run Release Z by hand."
