@@ -1,10 +1,10 @@
 //! Fonts a presentation uses that this machine doesn't have, so opening it can say so (its text
 //! draws in a stand-in; see `FontDb::document_face`).
 
-use deckcraft_fonts::FontDb;
-use deckcraft_model::resolve::{self, Ctx};
-use deckcraft_model::text::{Bullet, TextBody};
-use deckcraft_model::{Presentation, Shape, ShapeKind};
+use deckz_fonts::FontDb;
+use deckz_model::resolve::{self, Ctx};
+use deckz_model::text::{Bullet, TextBody};
+use deckz_model::{Presentation, Shape, ShapeKind};
 
 /// The font families the slides' text is drawn in (theme fonts resolved, bullet fonts included)
 /// that aren't installed or bundled, sorted, without duplicates (case-insensitive).
@@ -31,7 +31,7 @@ fn used_fonts(p: &Presentation) -> Vec<String> {
     };
     for slide in &p.slides {
         let Some(ctx) = Ctx::for_slide(p, slide) else { continue };
-        deckcraft_model::walk(&slide.shapes, &mut |s, _| {
+        deckz_model::walk(&slide.shapes, &mut |s, _| {
             if let Some(body) = &s.text {
                 body_fonts(&ctx, s, body, &mut add);
             }

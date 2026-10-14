@@ -1,7 +1,7 @@
 //! Title bar, ribbon tabs and the ribbon card with every tab's groups.
 
-use deckcraft_engine::Target;
-use deckcraft_model::{ShapeKind, anim::AnimClass};
+use deckz_engine::Target;
+use deckz_model::{ShapeKind, anim::AnimClass};
 use egui::{Align2, Color32, CornerRadius, Rect, Sense, Stroke, Ui, pos2, vec2};
 use serde_json::{Value, json};
 
@@ -14,7 +14,7 @@ pub const TITLE_H: f32 = 38.0;
 
 /// Is engine command `id` enabled right now?
 pub fn enabled(app: &SlideApp, id: &str) -> bool {
-    match deckcraft_engine::find_command(id) {
+    match deckz_engine::find_command(id) {
         Some(c) => (c.enabled)(&app.session).is_ok(),
         None => crate::UI_COMMANDS.iter().any(|c| c.0 == id),
     }
@@ -63,7 +63,7 @@ pub fn title_bar(app: &mut SlideApp, ui: &mut Ui) {
             app.start_show(0, false);
         }
         let title =
-            app.session.active().map(|d| format!("{}{}", d.title(), if dirty { " — Edited" } else { "" })).unwrap_or_else(|| "DeckCraft".into());
+            app.session.active().map(|d| format!("{}{}", d.title(), if dirty { " — Edited" } else { "" })).unwrap_or_else(|| "DeckZ".into());
         ui.painter().text(rect.center(), Align2::CENTER_CENTER, title, theme::font(13.0), t.text);
         // Right side.
         let mut right = ui.new_child(
@@ -249,7 +249,7 @@ fn toggle(app: &mut SlideApp, ui: &mut Ui, icon: Icon, label: &str, id: &str, on
 }
 
 fn tip(id: &str, label: &str) -> String {
-    let sc = deckcraft_engine::find_command(id).and_then(|c| c.shortcut).or_else(|| crate::UI_COMMANDS.iter().find(|c| c.0 == id).and_then(|c| c.2));
+    let sc = deckz_engine::find_command(id).and_then(|c| c.shortcut).or_else(|| crate::UI_COMMANDS.iter().find(|c| c.0 == id).and_then(|c| c.2));
     match sc {
         Some(s) => format!("{label} ({})", pretty_shortcut(s)),
         None => label.to_string(),
@@ -264,8 +264,8 @@ pub fn pretty_shortcut(s: &str) -> String {
     }
 }
 
-fn scheme(app: &SlideApp) -> deckcraft_color::ColorScheme {
-    app.session.active().and_then(|d| d.doc.masters.first().map(|m| m.scheme())).unwrap_or_else(|| deckcraft_model::Theme::default().colors)
+fn scheme(app: &SlideApp) -> deckz_color::ColorScheme {
+    app.session.active().and_then(|d| d.doc.masters.first().map(|m| m.scheme())).unwrap_or_else(|| deckz_model::Theme::default().colors)
 }
 
 /// The formatting state at the selection (bold, size…).
@@ -317,7 +317,7 @@ fn clipboard_group(app: &mut SlideApp, ui: &mut Ui) {
 }
 
 fn layout_menu(app: &mut SlideApp, ui: &mut Ui, cmd: &str) {
-    let layouts: Vec<(String, deckcraft_model::LayoutId)> = app
+    let layouts: Vec<(String, deckz_model::LayoutId)> = app
         .session
         .active()
         .and_then(|d| d.doc.masters.first().map(|m| m.layouts.iter().map(|l| (l.name.clone(), l.id)).collect()))
@@ -328,11 +328,11 @@ fn layout_menu(app: &mut SlideApp, ui: &mut Ui, cmd: &str) {
             let resp = ui.vertical(|ui| {
                 let (rect, resp) = ui.allocate_exact_size(vec2(96.0, 54.0), Sense::click());
                 if let (Some(d), Some(li)) = (app.session.active(), idx) {
-                    let img = deckcraft_render::render_layout(
+                    let img = deckz_render::render_layout(
                         &d.doc,
                         0,
                         Some(li),
-                        &deckcraft_render::RenderOpts {
+                        &deckz_render::RenderOpts {
                             scale: 192.0 / d.doc.slide_size.width.max(1.0),
                             edit: true,
                             size: Some((192, 108)),
@@ -405,7 +405,7 @@ pub fn font_families(app: &SlideApp) -> Vec<String> {
         v.push(m.theme.fonts.major.latin.clone());
         v.push(m.theme.fonts.minor.latin.clone());
     }
-    v.extend(deckcraft_fonts::FontDb::global().families());
+    v.extend(deckz_fonts::FontDb::global().families());
     v.dedup();
     v
 }
@@ -440,7 +440,7 @@ fn font_group(app: &mut SlideApp, ui: &mut Ui, st: &Value) {
                 });
                 let size_text = size.map(|s| widgets::fmt_num(s, "")).unwrap_or_default();
                 dropdown(ui, "size", &size_text, 52.0, en, |ui| {
-                    for s in deckcraft_engine::cmd::format::SIZES.iter().chain([72.0, 80.0, 88.0, 96.0].iter()) {
+                    for s in deckz_engine::cmd::format::SIZES.iter().chain([72.0, 80.0, 88.0, 96.0].iter()) {
                         if ui.button(widgets::fmt_num(*s, "")).clicked() {
                             run(app, "format.size", json!({"size": s}));
                             ui.close();
@@ -508,9 +508,9 @@ fn font_group(app: &mut SlideApp, ui: &mut Ui, st: &Value) {
 }
 
 /// A ColorRef as a command colour parameter.
-pub fn cref_param(c: &deckcraft_model::ColorRef) -> Value {
+pub fn cref_param(c: &deckz_model::ColorRef) -> Value {
     match &c.base {
-        deckcraft_model::ColorBase::Scheme { slot } => {
+        deckz_model::ColorBase::Scheme { slot } => {
             let mut o = serde_json::Map::new();
             o.insert("scheme".into(), json!(slot.xml_name()));
             for m in &c.mods {
@@ -520,8 +520,8 @@ pub fn cref_param(c: &deckcraft_model::ColorRef) -> Value {
             }
             Value::Object(o)
         }
-        deckcraft_model::ColorBase::Rgb { rgb } if c.mods.is_empty() => json!(format!("#{}", rgb.hex())),
-        deckcraft_model::ColorBase::Rgb { rgb } => {
+        deckz_model::ColorBase::Rgb { rgb } if c.mods.is_empty() => json!(format!("#{}", rgb.hex())),
+        deckz_model::ColorBase::Rgb { rgb } => {
             let mut o = serde_json::Map::new();
             o.insert("rgb".into(), json!(format!("#{}", rgb.hex())));
             for m in &c.mods {
@@ -644,11 +644,11 @@ pub fn shapes_gallery(ui: &mut Ui) -> Option<&'static str> {
     let mut out = None;
     ui.set_max_width(330.0);
     egui::ScrollArea::vertical().max_height(420.0).show(ui, |ui| {
-        for cat in deckcraft_geom::preset::Category::ALL {
+        for cat in deckz_geom::preset::Category::ALL {
             ui.label(egui::RichText::new(cat.label()).font(theme::bold(12.0)));
             ui.horizontal_wrapped(|ui| {
                 ui.spacing_mut().item_spacing = vec2(1.0, 1.0);
-                for p in deckcraft_geom::preset::CATALOG.iter().filter(|p| p.category == cat) {
+                for p in deckz_geom::preset::CATALOG.iter().filter(|p| p.category == cat) {
                     let (r, resp) = ui.allocate_exact_size(vec2(26.0, 26.0), Sense::click());
                     if resp.hovered() {
                         ui.painter().rect_filled(r, CornerRadius::same(3), t.hover);
@@ -658,8 +658,8 @@ pub fn shapes_gallery(ui: &mut Ui) -> Option<&'static str> {
                         out = Some(p.name);
                     }
                 }
-                if cat == deckcraft_geom::preset::Category::Lines {
-                    for (name, label) in deckcraft_engine::tools::FREEFORM_TOOLS {
+                if cat == deckz_geom::preset::Category::Lines {
+                    for (name, label) in deckz_engine::tools::FREEFORM_TOOLS {
                         let (r, resp) = ui.allocate_exact_size(vec2(26.0, 26.0), Sense::click());
                         if resp.hovered() {
                             ui.painter().rect_filled(r, CornerRadius::same(3), t.hover);
@@ -683,7 +683,7 @@ pub fn shapes_gallery(ui: &mut Ui) -> Option<&'static str> {
 /// Draw a preset's outline (gallery icons).
 pub fn paint_preset(p: &egui::Painter, r: Rect, name: &str, fill: Color32, stroke: Color32) {
     let (w, h) = (r.width() as f64, r.height() as f64);
-    let Some(g) = deckcraft_geom::preset::build(name, w, h, &[]) else { return };
+    let Some(g) = deckz_geom::preset::build(name, w, h, &[]) else { return };
     for sp in &g.paths {
         let mut pts: Vec<egui::Pos2> = vec![];
         let mut polys: Vec<(Vec<egui::Pos2>, bool)> = vec![];
@@ -706,7 +706,7 @@ pub fn paint_preset(p: &egui::Painter, r: Rect, name: &str, fill: Color32, strok
             polys.push((pts, false));
         }
         for (poly, closed) in polys {
-            if closed && fill != Color32::TRANSPARENT && sp.fill != deckcraft_geom::preset::FillMode::None {
+            if closed && fill != Color32::TRANSPARENT && sp.fill != deckz_geom::preset::FillMode::None {
                 p.add(egui::Shape::Path(egui::epaint::PathShape { points: poly.clone(), closed: true, fill, stroke: Stroke::NONE.into() }));
             }
             if sp.stroke {
@@ -727,11 +727,11 @@ enum Fl {
     Close,
 }
 
-fn kurbo_flatten(path: &deckcraft_geom::BezPath, mut f: impl FnMut(Fl)) {
-    deckcraft_geom::preset_flatten(path, &mut |el| match el {
-        deckcraft_geom::PathEl::MoveTo(p) => f(Fl::Move(p.x, p.y)),
-        deckcraft_geom::PathEl::LineTo(p) => f(Fl::Line(p.x, p.y)),
-        deckcraft_geom::PathEl::ClosePath => f(Fl::Close),
+fn kurbo_flatten(path: &deckz_geom::BezPath, mut f: impl FnMut(Fl)) {
+    deckz_geom::preset_flatten(path, &mut |el| match el {
+        deckz_geom::PathEl::MoveTo(p) => f(Fl::Move(p.x, p.y)),
+        deckz_geom::PathEl::LineTo(p) => f(Fl::Line(p.x, p.y)),
+        deckz_geom::PathEl::ClosePath => f(Fl::Close),
         _ => {}
     });
 }
@@ -742,7 +742,7 @@ fn drawing_group(app: &mut SlideApp, ui: &mut Ui) {
         let r = big_button(ui, Icon::Shapes, "Shapes", en).on_hover_text("Shapes");
         egui::Popup::menu(&r).show(|ui| {
             if let Some(p) = shapes_gallery(ui) {
-                app.session.set_tool(deckcraft_engine::ToolKind::Shape { preset: p.to_string() });
+                app.session.set_tool(deckz_engine::ToolKind::Shape { preset: p.to_string() });
             }
         });
         big(app, ui, Icon::TextBox, "Text Box", "insert.textBox", json!({}));
@@ -782,7 +782,7 @@ fn drawing_group(app: &mut SlideApp, ui: &mut Ui) {
     });
 }
 
-pub fn outline_menu(app: &mut SlideApp, ui: &mut Ui, sc: &deckcraft_color::ColorScheme) {
+pub fn outline_menu(app: &mut SlideApp, ui: &mut Ui, sc: &deckz_color::ColorScheme) {
     if let Some(c) = widgets::color_grid(ui, sc, Some("No Outline")) {
         match c {
             Some(c) => run(app, "shape.line", json!({"color": cref_param(&c)})),
@@ -898,13 +898,13 @@ pub fn effects_menu(app: &mut SlideApp, ui: &mut Ui) {
 fn quick_styles(app: &mut SlideApp, ui: &mut Ui) {
     let sc = scheme(app);
     let slots = [
-        deckcraft_color::SchemeSlot::Dk1,
-        deckcraft_color::SchemeSlot::Accent1,
-        deckcraft_color::SchemeSlot::Accent2,
-        deckcraft_color::SchemeSlot::Accent3,
-        deckcraft_color::SchemeSlot::Accent4,
-        deckcraft_color::SchemeSlot::Accent5,
-        deckcraft_color::SchemeSlot::Accent6,
+        deckz_color::SchemeSlot::Dk1,
+        deckz_color::SchemeSlot::Accent1,
+        deckz_color::SchemeSlot::Accent2,
+        deckz_color::SchemeSlot::Accent3,
+        deckz_color::SchemeSlot::Accent4,
+        deckz_color::SchemeSlot::Accent5,
+        deckz_color::SchemeSlot::Accent6,
     ];
     egui::Grid::new("quickstyles").spacing(vec2(4.0, 4.0)).show(ui, |ui| {
         for row in 0..6 {
@@ -1038,7 +1038,7 @@ fn insert(app: &mut SlideApp, ui: &mut Ui) {
         let r = big_button(ui, Icon::Shapes, "Shapes", enabled(app, "shape.insert"));
         egui::Popup::menu(&r).show(|ui| {
             if let Some(p) = shapes_gallery(ui) {
-                app.session.set_tool(deckcraft_engine::ToolKind::Shape { preset: p.to_string() });
+                app.session.set_tool(deckz_engine::ToolKind::Shape { preset: p.to_string() });
             }
         });
         let r = big_button(ui, Icon::Icons, "Icons", enabled(app, "shape.insert"));
@@ -1046,7 +1046,7 @@ fn insert(app: &mut SlideApp, ui: &mut Ui) {
         big(app, ui, Icon::SmartArt, "SmartArt", "app.dialog", json!({"id": "smartart"}));
         let r = big_button(ui, Icon::Chart, "Chart", enabled(app, "insert.chart"));
         egui::Popup::menu(&r).show(|ui| {
-            for k in deckcraft_model::chart::ChartType::MAIN {
+            for k in deckz_model::chart::ChartType::MAIN {
                 if ui.button(k.label()).clicked() {
                     run(app, "insert.chart", json!({"type": format!("{k:?}")}));
                 }
@@ -1159,7 +1159,7 @@ fn icon_library(app: &mut SlideApp, ui: &mut Ui) {
             }
             paint_preset(ui.painter(), r.shrink(6.0), preset, t.text, t.text);
             if resp.on_hover_text(label).clicked() {
-                let size = app.session.active().map(|d| d.doc.slide_size).unwrap_or(deckcraft_model::defaults::WIDE);
+                let size = app.session.active().map(|d| d.doc.slide_size).unwrap_or(deckz_model::defaults::WIDE);
                 let _ = app.run("shape.insert", json!({"preset": preset, "rect": [size.width / 2.0 - 48.0, size.height / 2.0 - 48.0, 96, 96]}));
                 let _ = app.run("shape.fill", json!({"color": "tx1"}));
                 let _ = app.run("shape.line", json!({"none": true}));
@@ -1172,7 +1172,7 @@ fn icon_library(app: &mut SlideApp, ui: &mut Ui) {
 // ---------- Draw ----------
 
 fn draw(app: &mut SlideApp, ui: &mut Ui) {
-    use deckcraft_engine::ToolKind;
+    use deckz_engine::ToolKind;
     let cur = app.session.tool.kind.clone();
     group(ui, |ui| {
         let sel = matches!(cur, ToolKind::Select);
@@ -1181,16 +1181,16 @@ fn draw(app: &mut SlideApp, ui: &mut Ui) {
         }
         let er = matches!(&cur, ToolKind::Ink { mode, .. } if mode == "eraser");
         if big_button_ex(ui, Icon::Eraser, "Eraser", true, false, er).0.clicked() {
-            app.session.set_tool(ToolKind::Ink { mode: "eraser".into(), color: deckcraft_color::Rgba::BLACK, width: 2.0 });
+            app.session.set_tool(ToolKind::Ink { mode: "eraser".into(), color: deckz_color::Rgba::BLACK, width: 2.0 });
         }
     });
     group(ui, |ui| {
-        let pens: [(Icon, &str, &str, deckcraft_color::Rgba, f64); 5] = [
-            (Icon::Pen, "Black Pen", "pen", deckcraft_color::Rgba::rgb(20, 20, 20), 1.5),
-            (Icon::Pen, "Red Pen", "pen", deckcraft_color::Rgba::rgb(0xD8, 0x3F, 0x3F), 1.5),
-            (Icon::Pen, "Blue Pen", "pen", deckcraft_color::Rgba::rgb(0x2E, 0x6F, 0xD8), 1.5),
-            (Icon::Pencil, "Pencil", "pen", deckcraft_color::Rgba::rgb(90, 90, 90), 1.0),
-            (Icon::HighlighterPen, "Highlighter", "highlighter", deckcraft_color::Rgba::rgb(255, 230, 0), 10.0),
+        let pens: [(Icon, &str, &str, deckz_color::Rgba, f64); 5] = [
+            (Icon::Pen, "Black Pen", "pen", deckz_color::Rgba::rgb(20, 20, 20), 1.5),
+            (Icon::Pen, "Red Pen", "pen", deckz_color::Rgba::rgb(0xD8, 0x3F, 0x3F), 1.5),
+            (Icon::Pen, "Blue Pen", "pen", deckz_color::Rgba::rgb(0x2E, 0x6F, 0xD8), 1.5),
+            (Icon::Pencil, "Pencil", "pen", deckz_color::Rgba::rgb(90, 90, 90), 1.0),
+            (Icon::HighlighterPen, "Highlighter", "highlighter", deckz_color::Rgba::rgb(255, 230, 0), 10.0),
         ];
         for (icon, label, mode, color, width) in pens {
             let on = matches!(&cur, ToolKind::Ink { mode: m, color: c, .. } if m == mode && *c == color);
@@ -1212,7 +1212,7 @@ fn draw(app: &mut SlideApp, ui: &mut Ui) {
 // ---------- Design ----------
 
 fn design(app: &mut SlideApp, ui: &mut Ui) {
-    let themes = deckcraft_model::theme::builtin_themes();
+    let themes = deckz_model::theme::builtin_themes();
     let cur = app.session.active().and_then(|d| d.doc.masters.first().map(|m| m.theme.name.clone())).unwrap_or_default();
     group(ui, |ui| {
         let sel = themes.iter().position(|th| th.name == cur);
@@ -1236,7 +1236,7 @@ fn design(app: &mut SlideApp, ui: &mut Ui) {
     group(ui, |ui| {
         let r = big_button(ui, Icon::Colors, "Colors", true);
         egui::Popup::menu(&r).width(240.0).show(|ui| {
-            for cs in deckcraft_model::theme::builtin_color_schemes() {
+            for cs in deckz_model::theme::builtin_color_schemes() {
                 ui.horizontal(|ui| {
                     let (rect, resp) = ui.allocate_exact_size(vec2(220.0, 20.0), Sense::click());
                     let p = ui.painter();
@@ -1257,7 +1257,7 @@ fn design(app: &mut SlideApp, ui: &mut Ui) {
         });
         let r = big_button(ui, Icon::Fonts, "Fonts", true);
         egui::Popup::menu(&r).width(220.0).show(|ui| {
-            for fs in deckcraft_model::theme::builtin_font_schemes() {
+            for fs in deckz_model::theme::builtin_font_schemes() {
                 if ui.button(format!("{}\n   {} / {}", fs.name, fs.major.latin, fs.minor.latin)).clicked() {
                     run(app, "design.fonts", json!({"name": fs.name}));
                 }
@@ -1269,10 +1269,10 @@ fn design(app: &mut SlideApp, ui: &mut Ui) {
                 let sc = scheme(app);
                 for i in 1..=12 {
                     let slots = [
-                        deckcraft_color::SchemeSlot::Lt1,
-                        deckcraft_color::SchemeSlot::Lt2,
-                        deckcraft_color::SchemeSlot::Dk2,
-                        deckcraft_color::SchemeSlot::Dk1,
+                        deckz_color::SchemeSlot::Lt1,
+                        deckz_color::SchemeSlot::Lt2,
+                        deckz_color::SchemeSlot::Dk2,
+                        deckz_color::SchemeSlot::Dk1,
                     ];
                     let base = theme::to_color32(sc.get(slots[(i - 1) % 4]));
                     let shade = match (i - 1) / 4 {
@@ -1316,14 +1316,14 @@ fn design(app: &mut SlideApp, ui: &mut Ui) {
     });
 }
 
-pub fn paint_theme_tile(p: &egui::Painter, r: Rect, th: &deckcraft_model::Theme) {
-    let bg = theme::to_color32(th.colors.get(deckcraft_color::SchemeSlot::Lt1));
-    let fg = theme::to_color32(th.colors.get(deckcraft_color::SchemeSlot::Dk1));
+pub fn paint_theme_tile(p: &egui::Painter, r: Rect, th: &deckz_model::Theme) {
+    let bg = theme::to_color32(th.colors.get(deckz_color::SchemeSlot::Lt1));
+    let fg = theme::to_color32(th.colors.get(deckz_color::SchemeSlot::Dk1));
     p.rect(r, CornerRadius::same(2), bg, Stroke::new(1.0, Color32::from_gray(200)), egui::StrokeKind::Inside);
     p.text(r.min + vec2(8.0, r.height() * 0.42), Align2::LEFT_CENTER, "Aa", theme::font(r.height() * 0.38), fg);
     let w = (r.width() - 16.0) / 6.0;
     for k in 0..6 {
-        let c = theme::to_color32(th.colors.colors.get(4 + k).copied().unwrap_or(deckcraft_color::Rgba::BLACK));
+        let c = theme::to_color32(th.colors.colors.get(4 + k).copied().unwrap_or(deckz_color::Rgba::BLACK));
         p.rect_filled(Rect::from_min_size(pos2(r.min.x + 8.0 + k as f32 * w, r.max.y - 11.0), vec2(w - 1.5, 5.0)), CornerRadius::ZERO, c);
     }
 }
@@ -1343,7 +1343,7 @@ fn transitions(app: &mut SlideApp, ui: &mut Ui) {
         }
     });
     group(ui, |ui| {
-        let list = deckcraft_model::anim::TRANSITIONS;
+        let list = deckz_model::anim::TRANSITIONS;
         let shown: Vec<_> = list.iter().take(12).collect();
         let sel = shown.iter().position(|x| x.0 == kind);
         if let Some(i) = widgets::gallery(
@@ -1378,11 +1378,11 @@ fn transitions(app: &mut SlideApp, ui: &mut Ui) {
         });
     });
     group(ui, |ui| {
-        let opts: &[&str] = deckcraft_model::anim::TRANSITIONS.iter().find(|x| x.0 == kind).map(|x| x.4).unwrap_or(&[]);
+        let opts: &[&str] = deckz_model::anim::TRANSITIONS.iter().find(|x| x.0 == kind).map(|x| x.4).unwrap_or(&[]);
         let r = big_button(ui, Icon::EffectOptions, "Effect\nOptions", !opts.is_empty());
         egui::Popup::menu(&r).show(|ui| {
             for o in opts {
-                if ui.button(deckcraft_model::anim::transition_option_label(&kind, o)).clicked() {
+                if ui.button(deckz_model::anim::transition_option_label(&kind, o)).clicked() {
                     run(app, "transition.options", json!({"option": o}));
                 }
             }
@@ -1517,7 +1517,7 @@ pub fn paint_transition_tile(p: &egui::Painter, r: Rect, (id, label): (&str, &st
 
 fn animations(app: &mut SlideApp, ui: &mut Ui) {
     let has_sel = app.session.active().is_some_and(|d| !d.selection.shapes.is_empty());
-    let cur: Option<deckcraft_model::Animation> = app.session.active().and_then(|d| {
+    let cur: Option<deckz_model::Animation> = app.session.active().and_then(|d| {
         let s = d.current_slide()?;
         let id = d.selection.shapes.first()?;
         s.animations.iter().find(|a| a.shape == *id).cloned()
@@ -1533,7 +1533,7 @@ fn animations(app: &mut SlideApp, ui: &mut Ui) {
         }
     });
     group(ui, |ui| {
-        let quick: Vec<_> = deckcraft_model::anim::ANIMATIONS
+        let quick: Vec<_> = deckz_model::anim::ANIMATIONS
             .iter()
             .filter(|a| {
                 matches!(
@@ -1577,7 +1577,7 @@ fn animations(app: &mut SlideApp, ui: &mut Ui) {
             {
                 ui.label(egui::RichText::new(label).font(theme::bold(12.0)));
                 ui.horizontal_wrapped(|ui| {
-                    for a in deckcraft_model::anim::ANIMATIONS.iter().filter(|a| a.2 == cls) {
+                    for a in deckz_model::anim::ANIMATIONS.iter().filter(|a| a.2 == cls) {
                         let (r, resp) = ui.allocate_exact_size(vec2(56.0, 54.0), Sense::click());
                         if resp.hovered() {
                             ui.painter().rect_filled(r, CornerRadius::same(4), Tokens::get(ui.ctx()).hover);
@@ -1591,7 +1591,7 @@ fn animations(app: &mut SlideApp, ui: &mut Ui) {
                 });
             }
         });
-        let opts: &[&str] = cur.as_ref().and_then(|c| deckcraft_model::anim::animation_info(&c.effect, c.class)).map(|x| x.5).unwrap_or(&[]);
+        let opts: &[&str] = cur.as_ref().and_then(|c| deckz_model::anim::animation_info(&c.effect, c.class)).map(|x| x.5).unwrap_or(&[]);
         let r = big_button(ui, Icon::EffectOptions, "Effect\nOptions", !opts.is_empty());
         egui::Popup::menu(&r).show(|ui| {
             for o in opts {
@@ -1610,7 +1610,7 @@ fn animations(app: &mut SlideApp, ui: &mut Ui) {
     group(ui, |ui| {
         let r = big_button(ui, Icon::AddAnimation, "Add\nAnimation", has_sel);
         egui::Popup::menu(&r).width(260.0).show(|ui| {
-            for a in deckcraft_model::anim::ANIMATIONS.iter().filter(|a| a.2 != AnimClass::Media) {
+            for a in deckz_model::anim::ANIMATIONS.iter().filter(|a| a.2 != AnimClass::Media) {
                 if ui
                     .button(format!(
                         "{} — {}",
@@ -1661,9 +1661,9 @@ fn animations(app: &mut SlideApp, ui: &mut Ui) {
             ui.horizontal(|ui| {
                 ui.label("Start:");
                 let s = cur.as_ref().map(|c| match c.start {
-                    deckcraft_model::AnimStart::OnClick => "On Click",
-                    deckcraft_model::AnimStart::WithPrevious => "With Previous",
-                    deckcraft_model::AnimStart::AfterPrevious => "After Previous",
+                    deckz_model::AnimStart::OnClick => "On Click",
+                    deckz_model::AnimStart::WithPrevious => "With Previous",
+                    deckz_model::AnimStart::AfterPrevious => "After Previous",
                 });
                 dropdown(ui, "astart", s.unwrap_or(""), 112.0, cur.is_some(), |ui| {
                     for (l, v) in [("On Click", "onClick"), ("With Previous", "withPrevious"), ("After Previous", "afterPrevious")] {
@@ -1772,7 +1772,7 @@ fn record(app: &mut SlideApp, ui: &mut Ui) {
     });
     group(ui, |ui| {
         if big_button(ui, Icon::Help, "Learn\nMore", true).clicked() {
-            app.open_url(deckcraft_engine::links::APP_PAGE);
+            app.open_url(deckz_engine::links::APP_PAGE);
         }
     });
 }
@@ -1881,7 +1881,7 @@ fn shape_format(app: &mut SlideApp, ui: &mut Ui) {
         let r = big_button(ui, Icon::Shapes, "Shapes", true);
         egui::Popup::menu(&r).show(|ui| {
             if let Some(p) = shapes_gallery(ui) {
-                app.session.set_tool(deckcraft_engine::ToolKind::Shape { preset: p.to_string() });
+                app.session.set_tool(deckz_engine::ToolKind::Shape { preset: p.to_string() });
             }
         });
         big(app, ui, Icon::TextBox, "Text\nBox", "insert.textBox", json!({}));
@@ -1895,7 +1895,7 @@ fn shape_format(app: &mut SlideApp, ui: &mut Ui) {
         let can_merge = enabled(app, "shape.merge");
         let r = big_button(ui, Icon::MergeShapes, "Merge\nShapes", can_merge).on_hover_text("Merge Shapes");
         egui::Popup::menu(&r).show(|ui| {
-            for (op, label) in deckcraft_engine::cmd::merge::OPS {
+            for (op, label) in deckz_engine::cmd::merge::OPS {
                 if ui.button(label).clicked() {
                     run(app, "shape.merge", json!({"op": op}));
                     ui.close();
@@ -2023,7 +2023,7 @@ fn size_group(app: &mut SlideApp, ui: &mut Ui) {
     let bx = app
         .session
         .active()
-        .and_then(|d| d.selection.shapes.first().and_then(|id| d.shape(*id).map(|s| deckcraft_engine::cmd::xfrm_of(&d.doc, &d.selection, s))));
+        .and_then(|d| d.selection.shapes.first().and_then(|id| d.shape(*id).map(|s| deckz_engine::cmd::xfrm_of(&d.doc, &d.selection, s))));
     group(ui, |ui| {
         rows(ui, |ui| {
             let Some(x) = bx else {
@@ -2175,7 +2175,7 @@ fn table_design(app: &mut SlideApp, ui: &mut Ui) {
         });
     });
     group(ui, |ui| {
-        let styles = deckcraft_model::table::table_styles();
+        let styles = deckz_model::table::table_styles();
         let quick: Vec<_> = styles.iter().filter(|(id, _)| id.starts_with("medium2") || id == "none" || id == "grid").take(8).collect();
         let cur = tbl.as_ref().map(|t| t.style.clone()).unwrap_or_default();
         let sel = quick.iter().position(|(id, _)| *id == cur);
@@ -2226,15 +2226,15 @@ fn table_design(app: &mut SlideApp, ui: &mut Ui) {
     });
 }
 
-pub fn paint_table_style(p: &egui::Painter, r: Rect, id: &str, sc: &deckcraft_color::ColorScheme) {
+pub fn paint_table_style(p: &egui::Painter, r: Rect, id: &str, sc: &deckz_color::ColorScheme) {
     let slot = match id.rsplit('-').next().unwrap_or("accent1") {
-        "accent2" => deckcraft_color::SchemeSlot::Accent2,
-        "accent3" => deckcraft_color::SchemeSlot::Accent3,
-        "accent4" => deckcraft_color::SchemeSlot::Accent4,
-        "accent5" => deckcraft_color::SchemeSlot::Accent5,
-        "accent6" => deckcraft_color::SchemeSlot::Accent6,
-        "tx1" => deckcraft_color::SchemeSlot::Dk1,
-        _ => deckcraft_color::SchemeSlot::Accent1,
+        "accent2" => deckz_color::SchemeSlot::Accent2,
+        "accent3" => deckz_color::SchemeSlot::Accent3,
+        "accent4" => deckz_color::SchemeSlot::Accent4,
+        "accent5" => deckz_color::SchemeSlot::Accent5,
+        "accent6" => deckz_color::SchemeSlot::Accent6,
+        "tx1" => deckz_color::SchemeSlot::Dk1,
+        _ => deckz_color::SchemeSlot::Accent1,
     };
     let a = theme::to_color32(sc.get(slot));
     let kind = id.split('-').next().unwrap_or("");
@@ -2304,7 +2304,7 @@ fn chart_design(app: &mut SlideApp, ui: &mut Ui) {
     group(ui, |ui| {
         let r = big_button(ui, Icon::ChangeChartType, "Change\nChart Type", true);
         egui::Popup::menu(&r).show(|ui| {
-            for k in deckcraft_model::chart::ChartType::MAIN {
+            for k in deckz_model::chart::ChartType::MAIN {
                 if ui.button(k.label()).clicked() {
                     // Replace the chart's type keeping its data.
                     if let Some(id) = app.session.active().and_then(|d| d.selection.shapes.first().copied()) {
@@ -2393,7 +2393,7 @@ fn slide_master(app: &mut SlideApp, ui: &mut Ui) {
     group(ui, |ui| {
         let r = big_button(ui, Icon::Themes, "Themes", true);
         egui::Popup::menu(&r).show(|ui| {
-            for th in deckcraft_model::theme::builtin_themes() {
+            for th in deckz_model::theme::builtin_themes() {
                 if ui.button(&th.name).clicked() {
                     run(app, "design.theme", json!({"name": th.name}));
                 }

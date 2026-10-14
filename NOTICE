@@ -27,3 +27,17 @@ Code dependencies
   https://github.com/pdeljanov/Symphonia.
 - The H.264, HEVC, VP9, AV1, Opus, MP4, Matroska and Ogg crates under crates/ are ported from
   FilmCraft (same owner, MIT OR Apache-2.0).
+
+
+----------------------------------------------------------------------------------------
+DeckZ (github.com/danish0440/deckz)
+
+Based on DeckCraft by Storytold (ArtCraft), Apache-2.0. Changes by PINTAZ TECHNOLOGIES.
+
+DeckZ is a modified version of DeckCraft (https://github.com/storytold/deckcraft). Changes made by
+PINTAZ TECHNOLOGIES (Malaysia), applied by .pintaz/rebrand.py on top of each upstream version:
+  - renamed to DeckZ (binaries, installers, bundle ids com.pintaz.*, data folders);
+  - the ArtCraft name, wordmark and marks removed (docs/brand/LICENSE-brand.txt), new Z icons;
+  - help/website links point to this fork; the About screen states the credit above;
+  - our own release and upstream-sync workflows (.github/workflows/*-z.yml).
+The licence files (LICENSE-MIT, LICENSE-APACHE) and all upstream copyright notices are unchanged.

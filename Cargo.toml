@@ -1,42 +1,42 @@
 [workspace]
 resolver = "3"
 members = ["crates/*", "apps/*", "xtask"]
-default-members = ["crates/*", "apps/deckcraft", "apps/deckcraft-cli"]
+default-members = ["crates/*", "apps/deckz", "apps/deckz-cli"]
 
 [workspace.package]
 version = "0.6.1"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 rust-version = "1.90"
-repository = "https://github.com/storytold/deckcraft"
+repository = "https://github.com/danish0440/deckz"
 
 [workspace.dependencies]
 # internal
-deckcraft-geom = { path = "crates/geom" }
-deckcraft-color = { path = "crates/color" }
-deckcraft-metafile = { path = "crates/metafile" }
-deckcraft-model = { path = "crates/model" }
-deckcraft-fonts = { path = "crates/fonts" }
-deckcraft-text = { path = "crates/text" }
-deckcraft-render = { path = "crates/render" }
-deckcraft-pdf = { path = "crates/pdf" }
-deckcraft-pptx = { path = "crates/pptx" }
-deckcraft-format = { path = "crates/format" }
-deckcraft-anim = { path = "crates/anim" }
-deckcraft-engine = { path = "crates/engine" }
-deckcraft-mcp = { path = "crates/mcp" }
-deckcraft-ui-egui = { path = "crates/ui-egui" }
-deckcraft-media = { path = "crates/media" }
-# codecs (ported from FilmCraft, same owner and licence)
-deckcraft-bitstream = { path = "crates/bitstream" }
-deckcraft-h264 = { path = "crates/h264" }
-deckcraft-hevc = { path = "crates/hevc" }
-deckcraft-vp9 = { path = "crates/vp9" }
-deckcraft-av1 = { path = "crates/av1" }
-deckcraft-isobmff = { path = "crates/isobmff" }
-deckcraft-matroska = { path = "crates/matroska" }
-deckcraft-ogg = { path = "crates/ogg" }
-deckcraft-opus = { path = "crates/opus" }
+deckz-geom = { path = "crates/geom" }
+deckz-color = { path = "crates/color" }
+deckz-metafile = { path = "crates/metafile" }
+deckz-model = { path = "crates/model" }
+deckz-fonts = { path = "crates/fonts" }
+deckz-text = { path = "crates/text" }
+deckz-render = { path = "crates/render" }
+deckz-pdf = { path = "crates/pdf" }
+deckz-pptx = { path = "crates/pptx" }
+deckz-format = { path = "crates/format" }
+deckz-anim = { path = "crates/anim" }
+deckz-engine = { path = "crates/engine" }
+deckz-mcp = { path = "crates/mcp" }
+deckz-ui-egui = { path = "crates/ui-egui" }
+deckz-media = { path = "crates/media" }
+# codecs (ported from FilmZ, same owner and licence)
+deckz-bitstream = { path = "crates/bitstream" }
+deckz-h264 = { path = "crates/h264" }
+deckz-hevc = { path = "crates/hevc" }
+deckz-vp9 = { path = "crates/vp9" }
+deckz-av1 = { path = "crates/av1" }
+deckz-isobmff = { path = "crates/isobmff" }
+deckz-matroska = { path = "crates/matroska" }
+deckz-ogg = { path = "crates/ogg" }
+deckz-opus = { path = "crates/opus" }
 
 # foundation
 kurbo = { version = "0.13", features = ["serde"] }

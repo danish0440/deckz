@@ -1,0 +1,150 @@
+# @ZNAME@ release (PINTAZ). Unsigned builds: Windows x64 (MSI + portable zip), macOS universal (DMG).
+# Run it from the Actions tab (workflow_dispatch). Makes the GitHub release v<version>-z<N>.
+name: Release Z
+
+on:
+  workflow_dispatch:
+    inputs:
+      zrev:
+        description: "Z revision: the tag is v<Cargo.toml version>-z<zrev>"
+        type: string
+        default: "1"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-z
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+  FONTS_REF: "@FONTSREF@"
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      date: ${{ steps.v.outputs.date }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: v
+        run: |
+          v=$(awk '/^\[/ { in_pkg = ($0 == "[workspace.package]"); next } in_pkg && $1 == "version" { gsub(/[" ]/, "", $3); print $3; exit }' Cargo.toml)
+          [ -n "$v" ] || { echo "::error::no [workspace.package] version"; exit 1; }
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+  windows:
+    needs: version
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      BUILD_DATE: ${{ needs.version.outputs.date }}
+      BUILD_SHA: ${{ github.sha }}
+      @ZUPPER@_VERSION: ${{ needs.version.outputs.version }}
+      @ZUPPER@_BUILD_DATE: ${{ needs.version.outputs.date }}
+      @ZUPPER@_BUILD_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check out craft-fonts (OFL fonts, build-time only)
+        if: env.FONTS_REF != ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: storytold/craft-fonts
+          ref: ${{ env.FONTS_REF }}
+          path: craft-fonts
+      - name: Fonts env
+        if: env.FONTS_REF != ''
+        shell: bash
+        run: |
+          echo "CRAFT_FONTS_DIR=$GITHUB_WORKSPACE/craft-fonts" >> "$GITHUB_ENV"
+          echo "CRAFT_FONTS_REQUIRED=1" >> "$GITHUB_ENV"
+      - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # v1
+        with:
+          toolchain: stable
+          targets: x86_64-pc-windows-msvc
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: release-z-windows-x64
+      - name: Install WiX
+        shell: pwsh
+        run: |
+          dotnet tool install --global wix --version 5.0.2
+          wix extension add -g "WixToolset.UI.wixext/5.0.2" "WixToolset.Util.wixext/5.0.2"
+      - name: Build and package (unsigned)
+        shell: pwsh
+        run: ./packaging/windows/package.ps1 -Arch x64
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-windows-x64
+          path: dist/release/*
+          if-no-files-found: error
+
+  macos:
+    needs: version
+    runs-on: macos-15
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      BUILD_DATE: ${{ needs.version.outputs.date }}
+      BUILD_SHA: ${{ github.sha }}
+      @ZUPPER@_VERSION: ${{ needs.version.outputs.version }}
+      @ZUPPER@_BUILD_DATE: ${{ needs.version.outputs.date }}
+      @ZUPPER@_BUILD_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check out craft-fonts (OFL fonts, build-time only)
+        if: env.FONTS_REF != ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: storytold/craft-fonts
+          ref: ${{ env.FONTS_REF }}
+          path: craft-fonts
+      - name: Fonts env
+        if: env.FONTS_REF != ''
+        run: |
+          echo "CRAFT_FONTS_DIR=$GITHUB_WORKSPACE/craft-fonts" >> "$GITHUB_ENV"
+          echo "CRAFT_FONTS_REQUIRED=1" >> "$GITHUB_ENV"
+      - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # v1
+        with:
+          toolchain: stable
+          targets: aarch64-apple-darwin, x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: release-z-macos-universal
+      - name: Build and package (ad-hoc signed, not notarized)
+        run: packaging/macos/package.sh --arch universal
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-macos
+          path: dist/release/*
+          if-no-files-found: error
+
+  release:
+    needs: [version, windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: release-*
+          path: artifacts
+          merge-multiple: true
+      - name: Publish the release
+        working-directory: artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG: v${{ needs.version.outputs.version }}-z${{ inputs.zrev }}
+        run: |
+          sha256sum -- * | tee SHA256SUMS.txt
+          printf '%s\n\n%s\n' \
+            "@ZNAME@ ${TAG#v}: free app by PINTAZ. Unsigned build: on Windows choose More info, then Run anyway; on Mac right-click the app, then Open." \
+            "Based on the upstream project storytold/@UPREPO@ (Apache-2.0); see NOTICE." > ../notes.md
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" --clobber -- *
+          else
+            gh release create "$TAG" --title "@ZNAME@ ${TAG#v}" --target "$GITHUB_SHA" --notes-file ../notes.md --latest -- *
+          fi

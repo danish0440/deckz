@@ -1,0 +1,47 @@
+# Weekly: take upstream storytold/@UPREPO@ main, re-apply .pintaz/rebrand.py, open a PR.
+# Never releases by itself: merge the PR, then run "Release Z" by hand.
+name: Upstream sync Z
+
+on:
+  schedule:
+    - cron: "17 2 * * 1" # Mondays 02:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Merge upstream and re-brand
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet --break-system-packages pillow || python3 -m pip install --quiet pillow
+          git config user.name "pintaz-sync"
+          git config user.email "pintaz-sync@users.noreply.github.com"
+          git remote add upstream https://github.com/storytold/@UPREPO@.git
+          git fetch --quiet upstream main
+          up=$(git rev-parse upstream/main)
+          if git merge-base --is-ancestor "$up" HEAD; then echo "already up to date with upstream $up"; exit 0; fi
+          branch="upstream-sync/${up:0:9}"
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then echo "branch $branch already exists"; exit 0; fi
+          cp -r .pintaz /tmp/pintaz
+          git checkout --quiet -b work "$up"
+          # icons come from the committed masters in .pintaz/icons, so these fonts are only a fallback
+          export Z_FONT_SERIF=/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf
+          export Z_FONT_SANS=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
+          python3 /tmp/pintaz/rebrand.py . @UPID@
+          git add -A
+          tree=$(git write-tree)
+          # one merge commit: parents = our main + upstream, tree = upstream re-branded
+          commit=$(git commit-tree "$tree" -p origin/main -p "$up" -m "Merge upstream @UPREPO@ ${up:0:9} and re-apply rebrand.py")
+          git push --quiet origin "$commit:refs/heads/$branch"
+          gh pr create --base main --head "$branch" --title "Upstream sync: @UPREPO@ ${up:0:9}" \
+            --body "Upstream storytold/@UPREPO@ at $up, re-branded by .pintaz/rebrand.py. Read .pintaz/rebrand-report.txt, merge, then run Release Z by hand."

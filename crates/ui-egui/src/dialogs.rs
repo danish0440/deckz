@@ -43,7 +43,7 @@ fn title(id: &str) -> &'static str {
         "renameShape" => "Rename",
         "renameLayout" => "Rename Layout",
         "paragraph" => "Paragraph",
-        "about" => "About DeckCraft",
+        "about" => "About DeckZ",
         "preferences" => "Preferences",
         "export" => "Export",
         "symbol" => "Symbol",
@@ -55,8 +55,8 @@ fn title(id: &str) -> &'static str {
         "chartData" => "Chart Data",
         "trim" => "Trim Media",
         "smartart" => "Choose a SmartArt Graphic",
-        "quit" => "DeckCraft",
-        _ => "DeckCraft",
+        "quit" => "DeckZ",
+        _ => "DeckZ",
     }
 }
 
@@ -134,11 +134,11 @@ fn body(app: &mut SlideApp, ui: &mut Ui, d: &mut Dialog) -> bool {
             ok || cancel
         }
         "slideSize" => {
-            let cur = app.session.active().map(|s| s.doc.slide_size).unwrap_or(deckcraft_model::defaults::WIDE);
+            let cur = app.session.active().map(|s| s.doc.slide_size).unwrap_or(deckz_model::defaults::WIDE);
             ui.label("Slides sized for:");
             let preset = d.get("preset", "");
             egui::ComboBox::from_id_salt("sizes").selected_text(if preset.is_empty() { "Custom" } else { &preset }).show_ui(ui, |ui| {
-                for (label, w, h) in deckcraft_model::defaults::SLIDE_SIZES {
+                for (label, w, h) in deckz_model::defaults::SLIDE_SIZES {
                     if ui.selectable_label(preset == *label, *label).clicked() {
                         d.fields.insert("preset".into(), label.to_string());
                         d.fields.insert("w".into(), format!("{:.2}", w / 72.0));
@@ -500,7 +500,7 @@ fn body(app: &mut SlideApp, ui: &mut Ui, d: &mut Dialog) -> bool {
             let (ok, cancel) = buttons(ui, "Insert");
             if ok && !v.is_empty() {
                 let pretty = pretty_equation(&v);
-                let size = app.session.active().map(|s| s.doc.slide_size).unwrap_or(deckcraft_model::defaults::WIDE);
+                let size = app.session.active().map(|s| s.doc.slide_size).unwrap_or(deckz_model::defaults::WIDE);
                 run(app, "insert.textBox", json!({"rect": [size.width / 2.0 - 150.0, size.height / 2.0 - 25.0, 300, 50], "text": pretty}));
                 run(app, "text.exit", json!({}));
                 run(app, "format.font", json!({"family": "Liberation Serif"}));
@@ -597,7 +597,7 @@ fn body(app: &mut SlideApp, ui: &mut Ui, d: &mut Dialog) -> bool {
             let ch = app.session.active().and_then(|s| {
                 s.selected_shapes()
                     .into_iter()
-                    .find_map(|x| if let deckcraft_model::ShapeKind::Chart(c) = &x.kind { Some(((**c).clone(), x.id)) } else { None })
+                    .find_map(|x| if let deckz_model::ShapeKind::Chart(c) = &x.kind { Some(((**c).clone(), x.id)) } else { None })
             });
             let Some((c, id)) = ch else {
                 ui.label("Select a chart first.");
@@ -785,15 +785,18 @@ pub fn about(_app: &mut SlideApp, ui: &mut Ui) {
     ui.vertical_centered(|ui| {
         let (r, _) = ui.allocate_exact_size(vec2(64.0, 64.0), Sense::hover());
         paint_logo(ui.painter(), r);
-        ui.label(egui::RichText::new("DeckCraft").font(theme::bold(22.0)));
+        ui.label(egui::RichText::new("DeckZ").font(theme::bold(22.0)));
         ui.label(egui::RichText::new(version_line()).color(t.text_dim));
+        // PINTAZ-ABOUT: required credit (Apache-2.0 change notice; ArtCraft brand licence)
+        ui.label(egui::RichText::new("by PINTAZ").strong());
+        ui.label("Based on DeckCraft by Storytold (ArtCraft), Apache-2.0. Changes by PINTAZ TECHNOLOGIES.");
         ui.add_space(6.0);
         ui.label("Presentations and slide shows, rebuilt from scratch in pure Rust.");
         ui.label("An open-source, clean-room project. Not affiliated with Microsoft.");
         ui.add_space(6.0);
-        ui.hyperlink_to("Join our community on Discord", deckcraft_engine::links::DISCORD);
-        ui.hyperlink_to("getartcraft.com/apps/deckcraft", deckcraft_engine::links::APP_PAGE);
-        ui.hyperlink_to("Source on GitHub", deckcraft_engine::links::GITHUB);
+        ui.hyperlink_to("Join our community on GitHub", deckz_engine::links::DISCORD);
+        ui.hyperlink_to("github.com/danish0440/deckz", deckz_engine::links::APP_PAGE);
+        ui.hyperlink_to("Source on GitHub", deckz_engine::links::GITHUB);
         ui.add_space(6.0);
         ui.label(egui::RichText::new("MIT OR Apache-2.0 · © 2026 ArtCraft Team and the DeckCraft contributors").size(11.0).color(t.text_faint));
     });
@@ -801,11 +804,11 @@ pub fn about(_app: &mut SlideApp, ui: &mut Ui) {
 
 /// "Version X.Y.Z" plus, for release builds, the short commit and build date. The version comes
 /// from `[workspace.package] version` (the single source of truth, `cargo xtask version`); the
-/// release workflow sets `DECKCRAFT_BUILD_SHA` / `DECKCRAFT_BUILD_DATE` at build time.
+/// release workflow sets `DECKZ_BUILD_SHA` / `DECKZ_BUILD_DATE` at build time.
 pub fn version_line() -> String {
     let mut s = format!("Version {}", env!("CARGO_PKG_VERSION"));
-    let sha = option_env!("DECKCRAFT_BUILD_SHA").map(|s| s.get(..9).unwrap_or(s)).filter(|s| !s.is_empty());
-    let date = option_env!("DECKCRAFT_BUILD_DATE").filter(|s| !s.is_empty());
+    let sha = option_env!("DECKZ_BUILD_SHA").map(|s| s.get(..9).unwrap_or(s)).filter(|s| !s.is_empty());
+    let date = option_env!("DECKZ_BUILD_DATE").filter(|s| !s.is_empty());
     match (sha, date) {
         (Some(sha), Some(date)) => s.push_str(&format!(" ({sha}, {date})")),
         (Some(x), None) | (None, Some(x)) => s.push_str(&format!(" ({x})")),
@@ -814,7 +817,7 @@ pub fn version_line() -> String {
     s
 }
 
-/// DeckCraft's mark, drawn in code: a slide card with a play triangle in our orange.
+/// DeckZ's mark, drawn in code: a slide card with a play triangle in our orange.
 pub fn paint_logo(p: &egui::Painter, r: Rect) {
     let orange = Color32::from_rgb(0xF2, 0x6B, 0x1D);
     let deep = Color32::from_rgb(0xC2, 0x4E, 0x14);

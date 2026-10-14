@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use deckcraft_model::{MediaId, Shape, ShapeId, Slide, SlideId};
+use deckz_model::{MediaId, Shape, ShapeId, Slide, SlideId};
 use serde_json::{Value, json};
 
 use super::*;
@@ -49,10 +49,10 @@ fn slides_scope(s: &Session, p: &Value) -> bool {
 }
 
 fn media_of_shapes(shapes: &[Shape], out: &mut Vec<MediaId>) {
-    deckcraft_model::walk(shapes, &mut |s, _| {
+    deckz_model::walk(shapes, &mut |s, _| {
         match &s.kind {
-            deckcraft_model::ShapeKind::Picture { fill } => out.push(fill.media),
-            deckcraft_model::ShapeKind::Media(m) => {
+            deckz_model::ShapeKind::Picture { fill } => out.push(fill.media),
+            deckz_model::ShapeKind::Media(m) => {
                 out.push(m.media);
                 if let Some(p) = m.poster {
                     out.push(p);
@@ -60,7 +60,7 @@ fn media_of_shapes(shapes: &[Shape], out: &mut Vec<MediaId>) {
             }
             _ => {}
         }
-        if let Some(deckcraft_model::Fill::Picture(pf)) = &s.fill {
+        if let Some(deckz_model::Fill::Picture(pf)) = &s.fill {
             out.push(pf.media);
         }
     });
@@ -73,8 +73,8 @@ fn copy_inner(s: &mut Session, p: &Value) -> Result<String> {
         if t.is_range() {
             let body = super::text::body_of(st, t).cloned().unwrap_or_default();
             let (a, b) = t.ordered();
-            let plain = deckcraft_model::edit::text_range(&body, a, b);
-            let sliced = deckcraft_model::edit::slice(&body, a, b);
+            let plain = deckz_model::edit::text_range(&body, a, b);
+            let sliced = deckz_model::edit::slice(&body, a, b);
             s.clipboard = crate::Clipboard { text: Some(sliced), plain: plain.clone(), ..Default::default() };
             return Ok(plain);
         }
@@ -126,8 +126,8 @@ fn cut(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 /// Give pasted shapes fresh ids (groups included) and map connector ends.
-pub(crate) fn reid(doc: &mut deckcraft_model::Presentation, shapes: &mut [Shape]) {
-    fn rec(doc: &mut deckcraft_model::Presentation, shapes: &mut [Shape], depth: usize) {
+pub(crate) fn reid(doc: &mut deckz_model::Presentation, shapes: &mut [Shape]) {
+    fn rec(doc: &mut deckz_model::Presentation, shapes: &mut [Shape], depth: usize) {
         if depth > 64 {
             return;
         }
@@ -141,7 +141,7 @@ pub(crate) fn reid(doc: &mut deckcraft_model::Presentation, shapes: &mut [Shape]
     rec(doc, shapes, 0);
 }
 
-fn bring_media(doc: &mut deckcraft_model::Presentation, media: &[deckcraft_model::MediaItem]) {
+fn bring_media(doc: &mut deckz_model::Presentation, media: &[deckz_model::MediaItem]) {
     for m in media {
         if doc.media(m.id).is_none_or(|x| x.data != m.data) {
             if doc.media(m.id).is_none() {
@@ -319,7 +319,7 @@ pub(crate) fn remove_shapes(shapes: &mut Vec<Shape>, ids: &[ShapeId]) -> usize {
 
 fn count(v: &[Shape]) -> usize {
     let mut n = 0;
-    deckcraft_model::walk(v, &mut |_, _| n += 1);
+    deckz_model::walk(v, &mut |_, _| n += 1);
     n
 }
 

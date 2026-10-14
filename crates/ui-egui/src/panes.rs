@@ -1,7 +1,7 @@
 //! Task panes on the right: Format Shape, Format Background, Animation, Selection, Comments and
 //! Design Ideas.
 
-use deckcraft_model::{AnimClass, AnimStart, Fill, ShapeKind};
+use deckz_model::{AnimClass, AnimStart, Fill, ShapeKind};
 use egui::{Align2, Color32, CornerRadius, Rect, Sense, Stroke, Ui, pos2, vec2};
 use serde_json::{Value, json};
 
@@ -59,8 +59,8 @@ fn run(app: &mut SlideApp, id: &str, p: Value) {
     let _ = app.run(id, p);
 }
 
-fn scheme(app: &SlideApp) -> deckcraft_color::ColorScheme {
-    app.session.active().and_then(|d| d.doc.masters.first().map(|m| m.scheme())).unwrap_or_else(|| deckcraft_model::Theme::default().colors)
+fn scheme(app: &SlideApp) -> deckz_color::ColorScheme {
+    app.session.active().and_then(|d| d.doc.masters.first().map(|m| m.scheme())).unwrap_or_else(|| deckz_model::Theme::default().colors)
 }
 
 fn color_button(
@@ -68,7 +68,7 @@ fn color_button(
     ui: &mut Ui,
     label: &str,
     none_label: Option<&str>,
-    on_pick: impl Fn(Option<deckcraft_model::ColorRef>) -> (String, Value),
+    on_pick: impl Fn(Option<deckz_model::ColorRef>) -> (String, Value),
 ) {
     let sc = scheme(app);
     ui.horizontal(|ui| {
@@ -92,7 +92,7 @@ fn format_shape(app: &mut SlideApp, ui: &mut Ui) {
         ui.label(egui::RichText::new("Select a shape to format it.").color(t.text_dim));
         return;
     };
-    let x = deckcraft_engine::cmd::xfrm_of(&st.doc, &st.selection, &sh);
+    let x = deckz_engine::cmd::xfrm_of(&st.doc, &st.selection, &sh);
     // Tabs as icons.
     ui.horizontal(|ui| {
         for (tab, icon, tip) in [
@@ -300,7 +300,7 @@ fn format_shape(app: &mut SlideApp, ui: &mut Ui) {
                 }
                 let mut rot = g.rotate_with_shape;
                 if ui.checkbox(&mut rot, "Rotate with shape").changed() {
-                    let ng = deckcraft_model::style::Gradient { rotate_with_shape: rot, ..g.clone() };
+                    let ng = deckz_model::style::Gradient { rotate_with_shape: rot, ..g.clone() };
                     run(app, "shape.fill", json!({"gradient": crate::fillui::gradient_json(&ng)}));
                 }
             }
@@ -343,7 +343,7 @@ fn background(app: &mut SlideApp, ui: &mut Ui) {
     let sc = scheme(app);
     let bg = app.session.active().and_then(|d| d.current_slide().and_then(|s| s.background.clone()));
     let fill = match &bg {
-        Some(deckcraft_model::Background::Fill { fill }) => Some(fill.clone()),
+        Some(deckz_model::Background::Fill { fill }) => Some(fill.clone()),
         _ => None,
     };
     let kind = match &fill {
@@ -367,7 +367,7 @@ fn background(app: &mut SlideApp, ui: &mut Ui) {
             match k {
                 "solid" => run(app, "design.background", json!({"color": "bg1"})),
                 "gradient" => {
-                    let mut g = crate::fillui::default_gradient(deckcraft_model::ColorRef::scheme(deckcraft_color::SchemeSlot::Bg2), 90.0);
+                    let mut g = crate::fillui::default_gradient(deckz_model::ColorRef::scheme(deckz_color::SchemeSlot::Bg2), 90.0);
                     g.rotate_with_shape = false;
                     run(app, "design.background", json!({"gradient": crate::fillui::gradient_json(&g)}));
                 }
@@ -376,7 +376,7 @@ fn background(app: &mut SlideApp, ui: &mut Ui) {
                         && let Some(path) = pick("picture")
                         && let Some(Ok(bytes)) = app.services.read.as_ref().map(|r| r(&path))
                     {
-                        let _ = app.run("design.background", json!({"picture": deckcraft_engine::cmd::base64_encode(&bytes)}));
+                        let _ = app.run("design.background", json!({"picture": deckz_engine::cmd::base64_encode(&bytes)}));
                     }
                 }
                 "pattern" => run(app, "design.background", json!({"pattern": {"preset": "pct20", "fg": "accent1", "bg": "bg1"}})),
@@ -432,7 +432,7 @@ fn background(app: &mut SlideApp, ui: &mut Ui) {
                 && let Some(path) = pick("picture")
                 && let Some(Ok(bytes)) = app.services.read.as_ref().map(|r| r(&path))
             {
-                let _ = app.run("design.background", json!({"picture": deckcraft_engine::cmd::base64_encode(&bytes)}));
+                let _ = app.run("design.background", json!({"picture": deckz_engine::cmd::base64_encode(&bytes)}));
             }
         }
         _ => {}
@@ -606,7 +606,7 @@ fn designer(app: &mut SlideApp, ui: &mut Ui) {
     let doc = st.doc.clone();
     let idx = st.selection.slide;
     let w = ui.available_width() - 8.0;
-    for th in deckcraft_model::theme::builtin_themes() {
+    for th in deckz_model::theme::builtin_themes() {
         let mut d = (*doc).clone();
         if let Some(m) = d.masters.first_mut() {
             let m = std::sync::Arc::make_mut(m);
@@ -615,10 +615,10 @@ fn designer(app: &mut SlideApp, ui: &mut Ui) {
         let ppp = ui.ctx().pixels_per_point();
         let px = (w * ppp) as u32;
         let h = (px as f64 * d.slide_size.height / d.slide_size.width.max(1.0)) as u32;
-        let img = deckcraft_render::render_slide(
+        let img = deckz_render::render_slide(
             &d,
             idx,
-            &deckcraft_render::RenderOpts { scale: px as f64 / d.slide_size.width.max(1.0), size: Some((px, h)), ..Default::default() },
+            &deckz_render::RenderOpts { scale: px as f64 / d.slide_size.width.max(1.0), size: Some((px, h)), ..Default::default() },
         );
         let tex = ui.ctx().load_texture(format!("idea-{}", th.name), crate::textures::to_color_image(&img, false), egui::TextureOptions::LINEAR);
         let (r, resp) = ui.allocate_exact_size(vec2(w, w * h as f32 / px.max(1) as f32), Sense::click());

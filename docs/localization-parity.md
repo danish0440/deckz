@@ -2,7 +2,7 @@
 
 > **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-12 · **Change:** minor (IME composition and CJK interface text, #101; previous: major, created; string count measured from source, PowerPoint's localizations read from its bundle) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
 
-DeckCraft's interface is English only today: strings are literals in the UI and engine code, with
+DeckZ's interface is English only today: strings are literals in the UI and engine code, with
 no catalog and no language switch. Requests: #15 (follow the system language), #30 and PR #34
 (Ukrainian, open). Dimension score: **~8% ready** (estimated: English complete, slide-text script
 support partly there), **55–90 h** to parity plus native-speaker review.
@@ -42,7 +42,7 @@ than the twelve above: Czech, Danish, Greek, Finnish, Hebrew, Hungarian, Italian
 Polish, Russian, Slovak, Swedish, Thai, Turkish and Traditional Chinese.
 
 Per-language hours assume the infrastructure exists: **8–14 h** once for a string catalog (copy a
-sibling app's approach, e.g. EffectCraft's menu and panel catalogs), a language setting that follows
+sibling app's approach, e.g. EffectZ's menu and panel catalogs), a language setting that follows
 the system (#15), plural and number formatting, and an `xtask` check that every key has a
 translation. IME composition landed with #101 (slide text, notes and text fields; one undo step
 per composition); the hours that included it are kept until the next re-measure.
@@ -50,7 +50,7 @@ per composition); the hours that included it are kept until the next re-measure.
 ## Proofing languages
 
 PowerPoint checks spelling in dozens of languages and lets each run carry a proofing language.
-DeckCraft keeps `a:rPr/@lang` on round trip but its spelling check is a small English list of
+DeckZ keeps `a:rPr/@lang` on round trip but its spelling check is a small English list of
 common misspellings (`crates/engine/src/cmd/review.rs`); see [gaps.md](gaps.md#proofing-spelling-thesaurus-autocorrect).
 
 ## Revision history

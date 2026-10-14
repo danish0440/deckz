@@ -1,6 +1,6 @@
 //! PDF export.
 //!
-//! Each slide is drawn by the DeckCraft renderer at print resolution (so the PDF looks exactly like
+//! Each slide is drawn by the DeckZ renderer at print resolution (so the PDF looks exactly like
 //! the slide, effects included) and overlaid with an invisible layer of real text from the text
 //! layout engine with embedded font subsets, so the text can be searched, selected and copied.
 //! Hyperlinks and shape actions become link annotations, slide titles become bookmarks.
@@ -10,10 +10,10 @@
 
 use std::collections::HashMap;
 
-use deckcraft_fonts::FontDb;
-use deckcraft_model::Presentation;
-use deckcraft_model::text::Action as ClickAction;
-use deckcraft_render::{PlacedText, RenderOpts};
+use deckz_fonts::FontDb;
+use deckz_model::Presentation;
+use deckz_model::text::Action as ClickAction;
+use deckz_render::{PlacedText, RenderOpts};
 use krilla::action::{Action, LinkAction};
 use krilla::annotation::{Annotation, LinkAnnotation, Target};
 use krilla::destination::XyzDestination;
@@ -97,7 +97,7 @@ pub fn export(pres: &Presentation, opts: &PdfOptions) -> Result<Vec<u8>> {
     }
     let mut pdf = krilla::Document::new();
     let title = opts.title.clone().unwrap_or_else(|| pres.props.title.clone());
-    let mut meta = Metadata::new().creator("DeckCraft".into()).producer("DeckCraft".into());
+    let mut meta = Metadata::new().creator("DeckZ".into()).producer("DeckZ".into());
     if !title.trim().is_empty() {
         meta = meta.title(title);
     }
@@ -228,7 +228,7 @@ fn grey(v: u8, opacity: f32) -> Fill {
 }
 
 impl Exporter<'_> {
-    fn font(&mut self, face: &deckcraft_fonts::FontFace) -> Option<Font> {
+    fn font(&mut self, face: &deckz_fonts::FontFace) -> Option<Font> {
         self.fonts.entry(face.id()).or_insert_with(|| Font::new(face.data().to_vec().into(), face.index())).clone()
     }
 
@@ -239,7 +239,7 @@ impl Exporter<'_> {
         let k = b.width() / sw;
         // Raster at the requested dpi relative to the box size on paper.
         let scale = (b.width() / 72.0 * self.opts.dpi.clamp(36.0, 600.0)) / sw;
-        let img = deckcraft_render::render_slide(pres, i, &RenderOpts { scale, threads: 4, ..Default::default() });
+        let img = deckz_render::render_slide(pres, i, &RenderOpts { scale, threads: 4, ..Default::default() });
         if img.width > 0 && img.height > 0 {
             let mut rgba = img.pixels.clone();
             for px in rgba.as_chunks_mut::<4>().0 {
@@ -272,7 +272,7 @@ impl Exporter<'_> {
         }
         if self.opts.text_layer {
             let view = Affine::translate((b.x0, b.y0)) * Affine::scale(k);
-            for pt in deckcraft_render::place_slide(pres, i).texts {
+            for pt in deckz_render::place_slide(pres, i).texts {
                 self.text_layer(s, &pt, view);
             }
             let _ = sh;
@@ -332,7 +332,7 @@ impl Exporter<'_> {
         let k = b.width() / pres.slide_size.width.max(1.0);
         let view = Affine::translate((b.x0, b.y0)) * Affine::scale(k);
         let mut out = Vec::new();
-        for l in deckcraft_render::place_slide(pres, i).links {
+        for l in deckz_render::place_slide(pres, i).links {
             let r = view.transform_rect_bbox(l.rect).intersect(b);
             let Some(rect) = krilla::geom::Rect::from_ltrb(r.x0 as f32, r.y0 as f32, r.x1 as f32, r.y1 as f32) else { continue };
             let goto = |slide: Option<usize>| {
@@ -355,8 +355,8 @@ impl Exporter<'_> {
         out
     }
 
-    fn ui_font(&mut self) -> Option<(Font, std::sync::Arc<deckcraft_fonts::FontFace>)> {
-        let face = FontDb::global().face(deckcraft_fonts::DEFAULT_FAMILY, "Regular");
+    fn ui_font(&mut self) -> Option<(Font, std::sync::Arc<deckz_fonts::FontFace>)> {
+        let face = FontDb::global().face(deckz_fonts::DEFAULT_FAMILY, "Regular");
         let f = self.font(&face)?;
         Some((f, face))
     }

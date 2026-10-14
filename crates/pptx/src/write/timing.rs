@@ -1,7 +1,7 @@
 //! Transitions and the animation timing tree.
 
-use deckcraft_model::anim::{AnimClass, AnimStart, Animation, TextBuild, Transition};
-use deckcraft_model::{Shape, ShapeKind, find_shape};
+use deckz_model::anim::{AnimClass, AnimStart, Animation, TextBuild, Transition};
+use deckz_model::{Shape, ShapeKind, find_shape};
 
 use super::shapes::IdMap;
 use super::{Exp, Out};
@@ -360,7 +360,7 @@ fn behaviors(w: &mut W, x: &mut Exp, ids: &mut Ids, e: &Eff) {
                     "lineColor" => "stroke.color",
                     _ => "fillcolor",
                 };
-                let c = a.color.clone().unwrap_or(deckcraft_model::ColorRef::scheme(deckcraft_color::SchemeSlot::Accent2));
+                let c = a.color.clone().unwrap_or(deckz_model::ColorRef::scheme(deckz_color::SchemeSlot::Accent2));
                 w.open("p:animClr", A::new().a("clrSpc", "rgb").a("dir", "cw"));
                 cbhvr(w, ids, e, dur, None, &[attr], None);
                 w.open0("p:to");

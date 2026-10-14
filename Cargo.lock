@@ -876,14 +876,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c87e182de0887fd5361989c677c4e8f5000cd9491d6d563161a8f3a5519fc7f"
 
 [[package]]
-name = "deckcraft"
+name = "deckz"
 version = "0.6.1"
 dependencies = [
  "arboard",
  "cpal",
- "deckcraft-engine",
- "deckcraft-media",
- "deckcraft-ui-egui",
+ "deckz-engine",
+ "deckz-media",
+ "deckz-ui-egui",
  "eframe",
  "egui",
  "image",
@@ -895,60 +895,60 @@ dependencies = [
 ]
 
 [[package]]
-name = "deckcraft-anim"
+name = "deckz-anim"
 version = "0.6.1"
 dependencies = [
- "deckcraft-geom",
- "deckcraft-model",
+ "deckz-geom",
+ "deckz-model",
  "serde",
 ]
 
 [[package]]
-name = "deckcraft-av1"
+name = "deckz-av1"
 version = "0.6.1"
 dependencies = [
- "deckcraft-bitstream",
+ "deckz-bitstream",
  "rayon",
  "thiserror 2.0.21",
 ]
 
 [[package]]
-name = "deckcraft-bitstream"
+name = "deckz-bitstream"
 version = "0.6.1"
 dependencies = [
  "proptest",
 ]
 
 [[package]]
-name = "deckcraft-cli"
+name = "deckz-cli"
 version = "0.6.1"
 dependencies = [
- "deckcraft-engine",
- "deckcraft-mcp",
+ "deckz-engine",
+ "deckz-mcp",
  "serde_json",
 ]
 
 [[package]]
-name = "deckcraft-color"
+name = "deckz-color"
 version = "0.6.1"
 dependencies = [
  "serde",
 ]
 
 [[package]]
-name = "deckcraft-engine"
+name = "deckz-engine"
 version = "0.6.1"
 dependencies = [
- "deckcraft-color",
- "deckcraft-fonts",
- "deckcraft-format",
- "deckcraft-geom",
- "deckcraft-media",
- "deckcraft-model",
- "deckcraft-pdf",
- "deckcraft-pptx",
- "deckcraft-render",
- "deckcraft-text",
+ "deckz-color",
+ "deckz-fonts",
+ "deckz-format",
+ "deckz-geom",
+ "deckz-media",
+ "deckz-model",
+ "deckz-pdf",
+ "deckz-pptx",
+ "deckz-render",
+ "deckz-text",
  "i_overlay",
  "image",
  "log",
@@ -958,7 +958,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "deckcraft-fonts"
+name = "deckz-fonts"
 version = "0.6.1"
 dependencies = [
  "epaint_default_fonts",
@@ -970,10 +970,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "deckcraft-format"
+name = "deckz-format"
 version = "0.6.1"
 dependencies = [
- "deckcraft-model",
+ "deckz-model",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
@@ -981,7 +981,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "deckcraft-geom"
+name = "deckz-geom"
 version = "0.6.1"
 dependencies = [
  "kurbo",
@@ -989,57 +989,57 @@ dependencies = [
 ]
 
 [[package]]
-name = "deckcraft-h264"
+name = "deckz-h264"
 version = "0.6.1"
 dependencies = [
- "deckcraft-bitstream",
+ "deckz-bitstream",
  "rayon",
  "thiserror 2.0.21",
 ]
 
 [[package]]
-name = "deckcraft-hevc"
+name = "deckz-hevc"
 version = "0.6.1"
 dependencies = [
- "deckcraft-bitstream",
+ "deckz-bitstream",
  "rayon",
  "thiserror 2.0.21",
 ]
 
 [[package]]
-name = "deckcraft-isobmff"
+name = "deckz-isobmff"
 version = "0.6.1"
 dependencies = [
- "deckcraft-bitstream",
+ "deckz-bitstream",
  "thiserror 2.0.21",
 ]
 
 [[package]]
-name = "deckcraft-matroska"
+name = "deckz-matroska"
 version = "0.6.1"
 
 [[package]]
-name = "deckcraft-mcp"
+name = "deckz-mcp"
 version = "0.6.1"
 dependencies = [
- "deckcraft-engine",
- "deckcraft-render",
+ "deckz-engine",
+ "deckz-render",
  "log",
  "serde_json",
 ]
 
 [[package]]
-name = "deckcraft-media"
+name = "deckz-media"
 version = "0.6.1"
 dependencies = [
- "deckcraft-av1",
- "deckcraft-h264",
- "deckcraft-hevc",
- "deckcraft-isobmff",
- "deckcraft-matroska",
- "deckcraft-ogg",
- "deckcraft-opus",
- "deckcraft-vp9",
+ "deckz-av1",
+ "deckz-h264",
+ "deckz-hevc",
+ "deckz-isobmff",
+ "deckz-matroska",
+ "deckz-ogg",
+ "deckz-opus",
+ "deckz-vp9",
  "image",
  "log",
  "symphonia",
@@ -1047,7 +1047,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "deckcraft-metafile"
+name = "deckz-metafile"
 version = "0.6.1"
 dependencies = [
  "kurbo",
@@ -1055,11 +1055,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "deckcraft-model"
+name = "deckz-model"
 version = "0.6.1"
 dependencies = [
- "deckcraft-color",
- "deckcraft-geom",
+ "deckz-color",
+ "deckz-geom",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
@@ -1067,21 +1067,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "deckcraft-ogg"
+name = "deckz-ogg"
 version = "0.6.1"
 
 [[package]]
-name = "deckcraft-opus"
+name = "deckz-opus"
 version = "0.6.1"
 
 [[package]]
-name = "deckcraft-pdf"
+name = "deckz-pdf"
 version = "0.6.1"
 dependencies = [
- "deckcraft-fonts",
- "deckcraft-model",
- "deckcraft-render",
- "deckcraft-text",
+ "deckz-fonts",
+ "deckz-model",
+ "deckz-render",
+ "deckz-text",
  "krilla",
  "kurbo",
  "log",
@@ -1090,13 +1090,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "deckcraft-pptx"
+name = "deckz-pptx"
 version = "0.6.1"
 dependencies = [
- "deckcraft-color",
- "deckcraft-engine",
- "deckcraft-geom",
- "deckcraft-model",
+ "deckz-color",
+ "deckz-engine",
+ "deckz-geom",
+ "deckz-model",
  "image",
  "log",
  "quick-xml 0.38.4",
@@ -1106,16 +1106,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "deckcraft-render"
+name = "deckz-render"
 version = "0.6.1"
 dependencies = [
- "deckcraft-anim",
- "deckcraft-color",
- "deckcraft-fonts",
- "deckcraft-geom",
- "deckcraft-metafile",
- "deckcraft-model",
- "deckcraft-text",
+ "deckz-anim",
+ "deckz-color",
+ "deckz-fonts",
+ "deckz-geom",
+ "deckz-metafile",
+ "deckz-model",
+ "deckz-text",
  "image",
  "kurbo",
  "log",
@@ -1125,32 +1125,32 @@ dependencies = [
 ]
 
 [[package]]
-name = "deckcraft-text"
+name = "deckz-text"
 version = "0.6.1"
 dependencies = [
  "chrono",
- "deckcraft-color",
- "deckcraft-fonts",
- "deckcraft-geom",
- "deckcraft-model",
+ "deckz-color",
+ "deckz-fonts",
+ "deckz-geom",
+ "deckz-model",
  "unicode-bidi",
  "unicode-linebreak",
  "unicode-segmentation",
 ]
 
 [[package]]
-name = "deckcraft-ui-egui"
+name = "deckz-ui-egui"
 version = "0.6.1"
 dependencies = [
- "deckcraft-anim",
- "deckcraft-color",
- "deckcraft-engine",
- "deckcraft-fonts",
- "deckcraft-geom",
- "deckcraft-media",
- "deckcraft-model",
- "deckcraft-render",
- "deckcraft-text",
+ "deckz-anim",
+ "deckz-color",
+ "deckz-engine",
+ "deckz-fonts",
+ "deckz-geom",
+ "deckz-media",
+ "deckz-model",
+ "deckz-render",
+ "deckz-text",
  "egui",
  "egui_kittest",
  "js-sys",
@@ -1161,20 +1161,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "deckcraft-vp9"
+name = "deckz-vp9"
 version = "0.6.1"
 dependencies = [
- "deckcraft-bitstream",
+ "deckz-bitstream",
  "rayon",
  "thiserror 2.0.21",
 ]
 
 [[package]]
-name = "deckcraft-web"
+name = "deckz-web"
 version = "0.6.1"
 dependencies = [
- "deckcraft-engine",
- "deckcraft-ui-egui",
+ "deckz-engine",
+ "deckz-ui-egui",
  "eframe",
  "egui",
  "js-sys",

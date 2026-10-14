@@ -2,7 +2,7 @@
 
 use std::f64::consts::PI;
 
-use deckcraft_model::{AnimClass, Rgba, Xfrm};
+use deckz_model::{AnimClass, Rgba, Xfrm};
 
 use crate::AnimState;
 use crate::easing::{bounce_out, ease, smooth};

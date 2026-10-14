@@ -1,21 +1,21 @@
 [package]
-name = "deckcraft-render"
+name = "deckz-render"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "DeckCraft renderer: slides, layouts and masters to pixels (vello_cpu): fills, outlines, effects, pictures, text, tables, charts"
+description = "DeckZ renderer: slides, layouts and masters to pixels (vello_cpu): fills, outlines, effects, pictures, text, tables, charts"
 
 [lints]
 workspace = true
 
 [dependencies]
-deckcraft-geom = { workspace = true }
-deckcraft-color = { workspace = true }
-deckcraft-metafile = { workspace = true }
-deckcraft-model = { workspace = true }
-deckcraft-anim = { workspace = true }
-deckcraft-fonts = { workspace = true }
-deckcraft-text = { workspace = true }
+deckz-geom = { workspace = true }
+deckz-color = { workspace = true }
+deckz-metafile = { workspace = true }
+deckz-model = { workspace = true }
+deckz-anim = { workspace = true }
+deckz-fonts = { workspace = true }
+deckz-text = { workspace = true }
 vello_cpu = { workspace = true }
 vello_common = { workspace = true }
 image = { workspace = true }

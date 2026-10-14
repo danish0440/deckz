@@ -8,7 +8,7 @@
 use crate::Decoder;
 use crate::cabac::{Contexts, NEXT_STATE, RANGE_TAB_LPS, init_contexts};
 use crate::spec_tables::*;
-use deckcraft_bitstream::{BitWriter, escape_rbsp};
+use deckz_bitstream::{BitWriter, escape_rbsp};
 
 const W: usize = 96;
 const H: usize = 64;
@@ -546,7 +546,7 @@ fn as_u8(p: &crate::Plane) -> &[u8] {
 
 /// Compare with ffmpeg's decode of the same stream (skipped when ffmpeg is absent).
 fn check_ffmpeg(name: &str, stream: &[u8], pics: &[crate::Picture]) {
-    // The ffmpeg cross-check lives in FilmCraft (test oracle).
+    // The ffmpeg cross-check lives in FilmZ (test oracle).
     let _ = (name, stream, pics);
 }
 

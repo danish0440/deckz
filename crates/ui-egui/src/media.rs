@@ -1,12 +1,12 @@
-//! Media playback in the UI host: the [`deckcraft_media::Player`] (audio out + clocks), video
+//! Media playback in the UI host: the [`deckz_media::Player`] (audio out + clocks), video
 //! feeds and their textures, the editor's media control bar, and the engine's `media.*` requests.
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-use deckcraft_engine::{MediaStatus, Session};
-use deckcraft_media::{AudioOut, ClipParams, Frame, PlayState, Player, VideoFeed, VoiceSpec, VoiceStatus};
-use deckcraft_model::{MediaClip, Presentation, ShapeId, ShapeKind};
+use deckz_engine::{MediaStatus, Session};
+use deckz_media::{AudioOut, ClipParams, Frame, PlayState, Player, VideoFeed, VoiceSpec, VoiceStatus};
+use deckz_model::{MediaClip, Presentation, ShapeId, ShapeKind};
 use egui::{Align2, Color32, CornerRadius, Pos2, Rect, Sense, Stroke, TextureHandle, Ui, pos2, vec2};
 
 use crate::icons::{self, Icon};
@@ -38,7 +38,7 @@ pub struct MediaHost {
 /// An animated GIF picture on a slide: its box, play time, frame and seconds to the next frame.
 pub struct Gif {
     pub id: ShapeId,
-    pub rect: deckcraft_geom::Xfrm,
+    pub rect: deckz_geom::Xfrm,
     pub t: f64,
     pub frame: usize,
     pub next: f64,
@@ -76,7 +76,7 @@ impl MediaHost {
                 c.0 = now - held;
             }
             let t = c.1.unwrap_or(now - c.0);
-            if let Some((frame, next)) = deckcraft_render::gif_frame(&item.data, &fill.adjust, t) {
+            if let Some((frame, next)) = deckz_render::gif_frame(&item.data, &fill.adjust, t) {
                 out.push(Gif { id: sh.id, rect, t, frame, next, paused: p });
             }
         }
@@ -121,7 +121,7 @@ impl MediaHost {
         let duration = if clip.duration_ms > 0 {
             clip.duration_ms as f64 / 1000.0
         } else {
-            *self.durations.entry(media_key).or_insert_with(|| deckcraft_media::probe(&bytes).map(|i| i.duration()).unwrap_or(0.0))
+            *self.durations.entry(media_key).or_insert_with(|| deckz_media::probe(&bytes).map(|i| i.duration()).unwrap_or(0.0))
         };
         let spec = VoiceSpec {
             clip: ClipParams::from_ms(clip.trim_start_ms, clip.trim_end_ms, clip.fade_in_ms, clip.fade_out_ms, clip.volume),
@@ -256,7 +256,7 @@ impl MediaHost {
 
 /// The clip of media shape `id` anywhere in the deck.
 pub fn find_clip(doc: &Presentation, id: ShapeId) -> Option<MediaClip> {
-    fn walk(shapes: &[deckcraft_model::Shape], id: ShapeId) -> Option<MediaClip> {
+    fn walk(shapes: &[deckz_model::Shape], id: ShapeId) -> Option<MediaClip> {
         shapes.iter().find_map(|s| match &s.kind {
             ShapeKind::Media(m) if s.id == id => Some(m.clone()),
             ShapeKind::Group { children, .. } => walk(children, id),
@@ -267,7 +267,7 @@ pub fn find_clip(doc: &Presentation, id: ShapeId) -> Option<MediaClip> {
 }
 
 /// Media shapes directly on slide `index`: (id, box in slide points, clip).
-pub fn slide_media(doc: &Presentation, index: usize) -> Vec<(ShapeId, deckcraft_geom::Xfrm, MediaClip)> {
+pub fn slide_media(doc: &Presentation, index: usize) -> Vec<(ShapeId, deckz_geom::Xfrm, MediaClip)> {
     let Some(s) = doc.slides.get(index) else { return vec![] };
     s.shapes
         .iter()

@@ -23,7 +23,7 @@ fn tool(s: &mut Server, name: &str, args: Value) -> Value {
 fn handshake_and_tool_list() {
     let mut s = Server::new(Box::new(Headless::new()));
     let r = call(&mut s, 1, "initialize", json!({"protocolVersion": "2025-06-18"}));
-    assert_eq!(r["result"]["serverInfo"]["name"], "deckcraft");
+    assert_eq!(r["result"]["serverInfo"]["name"], "deckz");
     let tools = call(&mut s, 2, "tools/list", json!({}));
     let names: Vec<&str> = tools["result"]["tools"].as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap()).collect();
     for n in ["run_command", "render_slide", "add_slide", "add_shape", "pointer", "inspect_slide"] {
@@ -98,7 +98,7 @@ fn export_tool_lists_pdf_and_its_options() {
     assert!(export["description"].as_str().unwrap().contains("pdf"), "{export}");
     let props = &export["inputSchema"]["properties"];
     let formats = props["format"]["enum"].as_array().unwrap();
-    for f in ["png", "jpeg", "pptx", "deckcraft", "outline", "pdf"] {
+    for f in ["png", "jpeg", "pptx", "deckz", "outline", "pdf"] {
         assert!(formats.iter().any(|x| x == f), "format {f}: {export}");
     }
     assert_eq!(props["layout"]["enum"], json!(["slides", "notes", "handouts"]));
@@ -107,7 +107,7 @@ fn export_tool_lists_pdf_and_its_options() {
         assert!(props.get(p).is_some(), "{p}: {export}");
     }
     // What the schema describes is accepted.
-    let dir = std::env::temp_dir().join(format!("deckcraft-mcp-export-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("deckz-mcp-export-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     tool(&mut s, "new_presentation", json!({}));
     for layout in ["slides", "notes", "handouts"] {

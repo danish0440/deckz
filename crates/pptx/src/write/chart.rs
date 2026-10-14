@@ -1,7 +1,7 @@
 //! Chart parts: a `c:chartSpace` with cached categories and values (no embedded workbook).
 
-use deckcraft_model::chart::{Chart, ChartType, Series};
-use deckcraft_model::style::Fill;
+use deckz_model::chart::{Chart, ChartType, Series};
+use deckz_model::style::Fill;
 
 use crate::opc::{NS_A, NS_C, NS_R};
 use crate::xml::{A, W};
@@ -36,7 +36,7 @@ fn simple_fill(w: &mut W, f: &Fill) {
     }
 }
 
-fn sp_pr(w: &mut W, fill: Option<&Fill>, line: Option<&deckcraft_model::Line>) {
+fn sp_pr(w: &mut W, fill: Option<&Fill>, line: Option<&deckz_model::Line>) {
     if fill.is_none() && line.is_none() {
         return;
     }

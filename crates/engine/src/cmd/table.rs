@@ -1,6 +1,6 @@
 //! Table Design and Table Layout tabs.
 
-use deckcraft_model::{ShapeKind, Table};
+use deckz_model::{ShapeKind, Table};
 use serde_json::{Value, json};
 
 use super::*;
@@ -108,7 +108,7 @@ fn with_table(s: &mut Session, p: &Value, cmd: &str, f: impl Fn(&mut Table) -> R
     // The edited cell may have moved out of range.
     s.select(|doc, sel| {
         let dims = super::current_shapes(doc, sel)
-            .and_then(|v| deckcraft_model::find_shape(v, id))
+            .and_then(|v| deckz_model::find_shape(v, id))
             .and_then(|x| if let ShapeKind::Table(t) = &x.kind { Some((t.n_rows(), t.n_cols())) } else { None });
         if let (Some(t), Some((nr, nc))) = (sel.text.as_mut(), dims)
             && let Some((r, c)) = t.cell
@@ -196,7 +196,7 @@ fn options(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn cell_fill(s: &mut Session, p: &Value) -> Result<Value> {
-    let fill = if bool_or(p, "none", false) { Some(deckcraft_model::Fill::None) } else { color_param(p, "color").map(deckcraft_model::Fill::solid) };
+    let fill = if bool_or(p, "none", false) { Some(deckz_model::Fill::None) } else { color_param(p, "color").map(deckz_model::Fill::solid) };
     let cells: Option<Vec<(usize, usize)>> = p
         .get("cells")
         .and_then(Value::as_array)

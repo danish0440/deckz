@@ -229,7 +229,7 @@ pub fn adjust_count(name: &str) -> usize {
     adjust_defaults(name).len()
 }
 
-/// Whether `name` is a warp preset DeckCraft draws.
+/// Whether `name` is a warp preset DeckZ draws.
 pub fn is_supported(name: &str) -> bool {
     !adjust_defaults(name).is_empty()
 }

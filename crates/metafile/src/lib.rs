@@ -1,4 +1,4 @@
-//! DeckCraft metafiles (ported from WordCraft's `crates/metafile`): reads Windows Metafiles (WMF)
+//! DeckZ metafiles (ported from WordZ's `crates/metafile`): reads Windows Metafiles (WMF)
 //! and Enhanced Metafiles (EMF) into a neutral vector model of filled and stroked paths, pattern
 //! fills, RGBA bitmaps and text strings, in a picture frame with y down.
 //!

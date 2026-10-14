@@ -1,10 +1,10 @@
 //! Laid-out text and click areas of a slide, in slide coordinates, without drawing — for exports
 //! that put real text over a raster (PDF text layer, links) and for text extraction.
 
-use deckcraft_model::resolve::{self, Ctx};
-use deckcraft_model::text::{Hyperlink, TextBody};
-use deckcraft_model::{Presentation, Shape, ShapeKind};
-use deckcraft_text::{Opts, TextLayout};
+use deckz_model::resolve::{self, Ctx};
+use deckz_model::text::{Hyperlink, TextBody};
+use deckz_model::{Presentation, Shape, ShapeKind};
+use deckz_text::{Opts, TextLayout};
 use kurbo::{Affine, Rect};
 
 use crate::{SlideFields, shape_geometry, table};
@@ -70,7 +70,7 @@ fn place(out: &mut Placed, rctx: &Ctx, fields: &SlideFields, s: &Shape, parent: 
     match &s.kind {
         ShapeKind::Group { children, child } => {
             let ch = Rect::new(child.x, child.y, child.x + child.w, child.y + child.h);
-            let gm = parent * deckcraft_geom::group_child_affine(&x, ch);
+            let gm = parent * deckz_geom::group_child_affine(&x, ch);
             for c in children {
                 place(out, rctx, fields, c, gm, depth + 1);
             }
@@ -95,7 +95,7 @@ fn place(out: &mut Placed, rctx: &Ctx, fields: &SlideFields, s: &Shape, parent: 
 
 /// Lay out `body` in text rect `tr` of shape `s` (shape-local → slide `m`) and record it and its hyperlinks.
 fn place_text(out: &mut Placed, rctx: &Ctx, fields: &SlideFields, s: &Shape, body: &TextBody, tr: Rect, m: Affine) {
-    let layout = deckcraft_text::layout(rctx, s, body, &Opts { rect: tr, fields, prompt_color: None, no_shrink: false });
+    let layout = deckz_text::layout(rctx, s, body, &Opts { rect: tr, fields, prompt_color: None, no_shrink: false });
     let m = crate::text_transform(m, tr, layout.rotation);
     // Text hyperlinks: one box per line segment of a linked run.
     for run in layout.runs.iter().filter(|r| r.link && !r.glyphs.is_empty()) {

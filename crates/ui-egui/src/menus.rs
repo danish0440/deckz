@@ -1,7 +1,7 @@
 //! UI-level shortcuts, the command palette, and the menu structure (shared with the native macOS
 //! menu bar in the desktop app).
 
-use deckcraft_engine::Mods;
+use deckz_engine::Mods;
 use serde_json::json;
 
 use crate::SlideApp;
@@ -262,6 +262,6 @@ pub fn menu_tree() -> Vec<(&'static str, Vec<(&'static str, &'static str)>)> {
                 ("Set Up Show…", "show.setup"),
             ],
         ),
-        ("Help", vec![("About DeckCraft", "app.about"), ("Command Palette", "app.palette")]),
+        ("Help", vec![("About DeckZ", "app.about"), ("Command Palette", "app.palette")]),
     ]
 }

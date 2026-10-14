@@ -1,8 +1,8 @@
 //! A slide's animation sequence: click steps, effect start times and per-shape state over time.
 
-use deckcraft_model::anim::TextBuild;
-use deckcraft_model::style::Fill;
-use deckcraft_model::{AnimClass, AnimStart, Animation, ColorScheme, Rgba, SchemeSlot, ShapeId, Slide, Xfrm};
+use deckz_model::anim::TextBuild;
+use deckz_model::style::Fill;
+use deckz_model::{AnimClass, AnimStart, Animation, ColorScheme, Rgba, SchemeSlot, ShapeId, Slide, Xfrm};
 
 use crate::AnimState;
 use crate::effects::{EffectSpec, exit_base, motion_path};
@@ -116,7 +116,7 @@ fn sanitize_xfrm(x: Xfrm, sw: f64, sh: f64) -> Xfrm {
 }
 
 fn default_scheme() -> Option<ColorScheme> {
-    deckcraft_model::theme::builtin_color_schemes().into_iter().next()
+    deckz_model::theme::builtin_color_schemes().into_iter().next()
 }
 
 impl Timeline {
@@ -139,11 +139,11 @@ impl Timeline {
                 owned.as_ref()
             }
         };
-        let resolve = |c: &deckcraft_model::ColorRef| -> Rgba {
+        let resolve = |c: &deckz_model::ColorRef| -> Rgba {
             match scheme {
                 Some(s) => c.resolve(s, None),
                 None => match &c.base {
-                    deckcraft_model::ColorBase::Rgb { rgb } => *rgb,
+                    deckz_model::ColorBase::Rgb { rgb } => *rgb,
                     _ => Rgba::rgb(0x15, 0x60, 0x82),
                 },
             }
@@ -180,7 +180,7 @@ impl Timeline {
                     (None, TextBuild::ByParagraph) => {
                         let mut v: Vec<Option<usize>> = vec![];
                         if let Some(t) = shape.and_then(|s| s.text.as_ref()) {
-                            let filled = |p: &deckcraft_model::text::Paragraph| p.runs.iter().any(|r| !r.text.trim().is_empty());
+                            let filled = |p: &deckz_model::text::Paragraph| p.runs.iter().any(|r| !r.text.trim().is_empty());
                             let top = t.paragraphs.iter().filter(|p| filled(p)).map(|p| p.level).min().unwrap_or(0);
                             let mut owner: Option<usize> = None;
                             for (i, p) in t.paragraphs.iter().enumerate() {
@@ -465,7 +465,7 @@ fn status(e: &EffectTiming, step: usize, t: f64) -> Status {
     Status::Active(p.clamp(0.0, 1.0))
 }
 
-fn build_spec(a: &Animation, xf: Xfrm, sw: f64, sh: f64, resolve: &dyn Fn(&deckcraft_model::ColorRef) -> Rgba) -> EffectSpec {
+fn build_spec(a: &Animation, xf: Xfrm, sw: f64, sh: f64, resolve: &dyn Fn(&deckz_model::ColorRef) -> Rgba) -> EffectSpec {
     let effect = if a.class == AnimClass::Exit { exit_base(&a.effect).to_string() } else { a.effect.clone() };
     let path = if a.class == AnimClass::Path { Some(motion_path(&a.effect, &a.option, a.path.as_deref())) } else { None };
     EffectSpec {

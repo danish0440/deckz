@@ -2,7 +2,7 @@
 
 > **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-12 · **Change:** trivial (Groups with a small legacy child coordinate space draw outlines, dashes, arrowheads and ink at their own width (#233); previously major: created; formats taken from PowerPoint 16.113.4's Info.plist, PPTX coverage measured from `crates/pptx`) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
 
-Every format PowerPoint reads or writes, DeckCraft's support, fidelity and how it is tested.
+Every format PowerPoint reads or writes, DeckZ's support, fidelity and how it is tested.
 Gaps are itemized in [gaps.md](gaps.md#file-formats). Dimension score: **~58% ready**
 (estimated), **60–110 h** to parity.
 
@@ -14,7 +14,7 @@ Weights inside this dimension: PPTX 70%, PDF export 10%, image export 5%, legacy
 From `/Applications/Microsoft PowerPoint.app/Contents/Info.plist` `CFBundleDocumentTypes` (Editor =
 PowerPoint opens and saves; Viewer = opens only).
 
-| Format | PowerPoint | DeckCraft read | DeckCraft write | Fidelity / notes | Tested by |
+| Format | PowerPoint | DeckZ read | DeckZ write | Fidelity / notes | Tested by |
 |---|---|---|---|---|---|
 | `.pptx` presentation | Editor | yes | yes | Broad (see below); never measured on real decks | `crates/pptx/tests/roundtrip.rs`, `sample.rs`, `malformed.rs`, `sniff.rs` (30 tests); opened in PowerPoint by hand 2026-10-06 |
 | `.potx` template | Editor | yes (as a presentation) | no: written with the `.pptx` content type | `file.saveTemplate` is Save As under another name | none |
@@ -23,10 +23,10 @@ PowerPoint opens and saves; Viewer = opens only).
 | `.ppt` / `.pot` / `.pps` 97–2003 binary | Editor | no | no | Owner decision; import only would be enough | none |
 | `.odp` OpenDocument | Editor | no | no | | none |
 | `.thmx` Office theme | Viewer | no | no | Browse for themes is a P2 row | none |
-| `.deckcraft` native (zip + JSON) | n/a | yes (also `.slidecraft`) | yes | Lossless for the DeckCraft model, forward compatible | `crates/format` tests |
+| `.deckz` native (zip + JSON) | n/a | yes (also `.slidecraft`) | yes | Lossless for the DeckZ model, forward compatible | `crates/format` tests |
 | PDF | export | no | yes | Slides, notes pages, handouts (1–9); real-text layer with embedded subsets, links, bookmarks. Slide artwork is a raster image at print resolution, not vector | `crates/pdf` tests |
 | Outline `.rtf` / `.txt` | export (RTF), import (outline) | `.txt`/`.md` outline (`slide.fromOutline`) | `.txt` outline | No RTF | engine tests |
-| PNG / JPEG slide images | export | n/a | yes (`file.export`, `deckcraft-cli render`) | Matches the editor's renderer | render tests |
+| PNG / JPEG slide images | export | n/a | yes (`file.export`, `deckz-cli render`) | Matches the editor's renderer | render tests |
 | TIFF / BMP / GIF slide images | export | n/a | no | Easy (the `image` crate writes them) | none |
 | Animated GIF of the deck | export | n/a | no | | none |
 | MP4 / MOV video of the deck | export | n/a | no | Needs timeline render + H.264 encode | none |
@@ -34,7 +34,7 @@ PowerPoint opens and saves; Viewer = opens only).
 
 ## Pictures and media inside decks
 
-| Kind | PowerPoint | DeckCraft | Notes |
+| Kind | PowerPoint | DeckZ | Notes |
 |---|---|---|---|
 | PNG, JPEG, GIF (animated), BMP, TIFF, WebP | yes | yes | `image` 0.25; animated GIFs play since #39 |
 | SVG | yes (with PNG fallback) | **no** | The PNG fallback shows; SVG files can't be inserted |
@@ -53,7 +53,7 @@ PowerPoint opens and saves; Viewer = opens only).
 ## PPTX coverage (PresentationML / DrawingML)
 
 What `crates/pptx` reads and writes, from ECMA-376. "Kept" means the XML is preserved untouched for
-the round trip even though DeckCraft doesn't model it.
+the round trip even though DeckZ doesn't model it.
 
 | Part / feature | Read | Write | Notes |
 |---|---|---|---|

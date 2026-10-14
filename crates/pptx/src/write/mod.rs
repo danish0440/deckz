@@ -9,9 +9,9 @@ mod timing;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use deckcraft_geom::Xfrm;
-use deckcraft_model::text::{Paragraph, TextBody};
-use deckcraft_model::{
+use deckz_geom::Xfrm;
+use deckz_model::text::{Paragraph, TextBody};
+use deckz_model::{
     Background, Comment, Layout, LayoutId, Master, MediaId, PhType, Placeholder, Presentation, Shape, ShapeId, Slide, SlideId, defaults,
 };
 
@@ -158,7 +158,7 @@ impl Exp<'_> {
         };
         o.rels.add("image", &opc::relative(&o.name, &part), false)
     }
-    pub fn chart_rel(&mut self, o: &mut Out, c: &deckcraft_model::Chart) -> String {
+    pub fn chart_rel(&mut self, o: &mut Out, c: &deckz_model::Chart) -> String {
         self.n_chart += 1;
         let name = format!("ppt/charts/chart{}.xml", self.n_chart);
         self.pkg.xml_part(&name, CT_CHART, chart::chart_xml(c));
@@ -178,7 +178,7 @@ fn background(w: &mut W, x: &mut Exp, o: &mut Out, bg: &Background) {
         Background::Fill { fill } => {
             w.open0("p:bgPr");
             match fill {
-                deckcraft_model::Fill::Background | deckcraft_model::Fill::Group => w.empty0("a:noFill"),
+                deckz_model::Fill::Background | deckz_model::Fill::Group => w.empty0("a:noFill"),
                 f => dml::fill(w, x, o, f),
             }
             w.empty0("a:effectLst");
@@ -248,7 +248,7 @@ fn clr_map_attrs(map: &[(String, String)]) -> A {
             .iter()
             .find(|(mk, _)| mk == k)
             .map(|(_, v)| v.as_str())
-            .filter(|v| deckcraft_color::SchemeSlot::from_xml(v).is_some_and(|s| deckcraft_color::SchemeSlot::THEME.contains(&s)))
+            .filter(|v| deckz_color::SchemeSlot::from_xml(v).is_some_and(|s| deckz_color::SchemeSlot::THEME.contains(&s)))
             .unwrap_or(d);
         a = a.a(k, v);
     }
@@ -281,7 +281,7 @@ fn ext_children(raw: Option<&str>) -> Option<String> {
     Some(raw.to_string())
 }
 
-fn notes_master_shapes(size: deckcraft_geom::Size) -> Vec<Shape> {
+fn notes_master_shapes(size: deckz_geom::Size) -> Vec<Shape> {
     let (w, h) = (size.width, size.height);
     let mk = |id: u32, name: &str, kind: PhType, idx: u32, x: f64, y: f64, ww: f64, hh: f64| Shape {
         id: ShapeId(id),
@@ -292,8 +292,8 @@ fn notes_master_shapes(size: deckcraft_geom::Size) -> Vec<Shape> {
         ..Default::default()
     };
     let mut img = mk(4, "Slide Image Placeholder 3", PhType::SlideImage, 2, w * 0.125, h * 0.125, w * 0.75, h * 0.375);
-    img.fill = Some(deckcraft_model::Fill::None);
-    img.line = Some(deckcraft_model::Line::solid(deckcraft_model::ColorRef::rgb(deckcraft_color::Rgba::BLACK), 1.0));
+    img.fill = Some(deckz_model::Fill::None);
+    img.line = Some(deckz_model::Line::solid(deckz_model::ColorRef::rgb(deckz_color::Rgba::BLACK), 1.0));
     let mut body = mk(5, "Notes Placeholder 4", PhType::Body, 3, w * 0.1, h * 0.53, w * 0.8, h * 0.36);
     if let Some(t) = body.text.as_mut() {
         t.paragraphs = vec![Paragraph::new("Click to edit Master text styles")];
@@ -308,21 +308,21 @@ fn notes_master_shapes(size: deckcraft_geom::Size) -> Vec<Shape> {
     ]
 }
 
-fn notes_style() -> deckcraft_model::text::ListStyle {
-    let mut ls = deckcraft_model::text::ListStyle::default();
+fn notes_style() -> deckz_model::text::ListStyle {
+    let mut ls = deckz_model::text::ListStyle::default();
     for i in 0..9u8 {
         ls.set(
             i,
-            deckcraft_model::text::LevelStyle {
-                para: deckcraft_model::text::ParaProps {
+            deckz_model::text::LevelStyle {
+                para: deckz_model::text::ParaProps {
                     margin_left: Some(36.0 * i as f64),
-                    align: Some(deckcraft_model::text::Align::Left),
+                    align: Some(deckz_model::text::Align::Left),
                     ..Default::default()
                 },
-                run: deckcraft_model::text::RunProps {
+                run: deckz_model::text::RunProps {
                     size: Some(12.0),
                     font: Some("+mn-lt".into()),
-                    fill: Some(deckcraft_model::Fill::solid(deckcraft_model::ColorRef::scheme(deckcraft_color::SchemeSlot::Tx1))),
+                    fill: Some(deckz_model::Fill::solid(deckz_model::ColorRef::scheme(deckz_color::SchemeSlot::Tx1))),
                     ..Default::default()
                 },
             },
@@ -359,7 +359,7 @@ fn sanitized(p: &Presentation) -> std::borrow::Cow<'_, Presentation> {
             Arc::make_mut(m).layouts.push(Layout {
                 id,
                 name: "Blank".into(),
-                kind: deckcraft_model::LayoutType::Blank,
+                kind: deckz_model::LayoutType::Blank,
                 show_master_shapes: true,
                 ..Default::default()
             });
@@ -449,7 +449,7 @@ pub fn export(p: &Presentation) -> Result<Vec<u8>, PptxError> {
         x.pkg.rels(&tname, &to.rels);
         let mut w = W::new();
         root_open(&mut w, "p:notesMaster", A::new());
-        let bg = Background::Ref { idx: 1001, color: deckcraft_model::ColorRef::scheme(deckcraft_color::SchemeSlot::Bg1) };
+        let bg = Background::Ref { idx: 1001, color: deckz_model::ColorRef::scheme(deckz_color::SchemeSlot::Bg1) };
         csld(&mut w, &mut x, &mut no, "", Some(&bg), &notes_master_shapes(p.notes_size));
         clr_map(&mut w, &[]);
         dml::list_style(&mut w, &mut x, &mut no, "p:notesStyle", &notes_style());
@@ -555,7 +555,7 @@ fn master_xml(x: &mut Exp, o: &mut Out, m: &Master, layouts: &[(u64, String)]) -
     w.close("p:sldLayoutIdLst");
     w.open0("p:txStyles");
     let (dt, db, dother) = defaults::master_styles();
-    let pick = |s: &deckcraft_model::text::ListStyle, d: deckcraft_model::text::ListStyle| if s.is_empty() { d } else { s.clone() };
+    let pick = |s: &deckz_model::text::ListStyle, d: deckz_model::text::ListStyle| if s.is_empty() { d } else { s.clone() };
     dml::list_style(&mut w, x, o, "p:titleStyle", &pick(&m.title_style, dt));
     dml::list_style(&mut w, x, o, "p:bodyStyle", &pick(&m.body_style, db));
     dml::list_style(&mut w, x, o, "p:otherStyle", &pick(&m.other_style, dother));
@@ -826,7 +826,7 @@ fn app_xml(p: &Presentation) -> Vec<u8> {
             .a("xmlns", "http://schemas.openxmlformats.org/officeDocument/2006/extended-properties")
             .a("xmlns:vt", "http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"),
     );
-    w.elt("Application", "DeckCraft");
+    w.elt("Application", "DeckZ");
     w.elt("Slides", &p.slides.len().to_string());
     w.elt("Notes", &p.slides.iter().filter(|s| !s.notes.is_empty()).count().to_string());
     w.elt("HiddenSlides", &p.slides.iter().filter(|s| s.hidden).count().to_string());

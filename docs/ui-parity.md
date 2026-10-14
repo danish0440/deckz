@@ -4,18 +4,18 @@
 
 > **Last reviewed:** 2026-10-12 · **Last updated:** 2026-10-12 · **Change:** minor (text editing keys observed in PowerPoint for Windows, #268) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
 
-How DeckCraft looks and feels next to PowerPoint: the shell, the ribbon, menus, panes, dialogs,
+How DeckZ looks and feels next to PowerPoint: the shell, the ribbon, menus, panes, dialogs,
 direct manipulation, keyboard and precision. Observations of PowerPoint are kept locally in
 `plan/powerpoint/01-observed-ui.md` and `menu-tree.txt` (gitignored, clean-room rules in
 AGENTS.md §2). Dimension score: **~60% ready** (estimated), **30–50 h** to parity.
 
 ## Shell
 
-| Element | PowerPoint for Mac | DeckCraft | Gap |
+| Element | PowerPoint for Mac | DeckZ | Gap |
 |---|---|---|---|
 | Title bar: AutoSave, Home, Save, Undo/Redo, document title, Share, search | yes | yes, no Share (cloud) | #71 macOS window controls misaligned |
 | Native macOS menu bar (File, Edit, View, Insert, Format, Arrange, Tools, Slide Show, Window, Help) | yes | **no** (`menus::menu_tree()` is defined but not installed) | 3–5 h |
-| Menu-bar items with a DeckCraft equivalent | 217 app-specific items | 128 matched by name (59%, heuristic lower bound) | See [target-app-parity.md](target-app-parity.md) |
+| Menu-bar items with a DeckZ equivalent | 217 app-specific items | 128 matched by name (59%, heuristic lower bound) | See [target-app-parity.md](target-app-parity.md) |
 | Ribbon tabs: Home, Insert, Draw, Design, Transitions, Animations, Slide Show, Record, Review, View | 10 | 10 | Record tab is a placeholder |
 | Contextual tabs: Shape Format, Picture Format, Table Design, Table Layout, Chart Design, Chart Format, Video/Audio Format and Playback | yes | most; checklist P0 row partial | Chart Format, media tabs thinner |
 | File tab (Backstage): Home, New, Open, Info, Save, Save As, Print, Share, Export, Close, Account, Options | yes | yes (#76), see [File tab](#file-tab-backstage); no Share (cloud) | Video/GIF/CD exports, templates beyond the built-in themes |
@@ -36,27 +36,27 @@ Close and, at the bottom under a rule, Account and Options. Entries are 40 point
 outline icon; the current page is drawn in the accent colour and outlined. Esc goes back. Alt+F opens
 on Home with the keyboard in the side menu; Up and Down move through it and a page shows as soon as
 its entry has the focus. PowerPoint's start screen is the same Home page, with only Home, New and
-Open at the top. DeckCraft follows all of this (`crates/ui-egui/src/backstage.rs`), with the page and
+Open at the top. DeckZ follows all of this (`crates/ui-egui/src/backstage.rs`), with the page and
 menu colours taken from the theme tokens (menu `chrome`, page `card`).
 
-| Page | PowerPoint | DeckCraft |
+| Page | PowerPoint | DeckZ |
 |---|---|---|
-| Home | Prompt box (Copilot), New row of themes with More themes, Recent / Favorites / Shared with Me with a file search, More presentations | DeckCraft's mark, Blank Presentation and the first themes with More themes →, Recent with a file search and More presentations → (to Open). No Copilot prompt, Favorites or Shared with Me |
+| Home | Prompt box (Copilot), New row of themes with More themes, Recent / Favorites / Shared with Me with a file search, More presentations | DeckZ's mark, Blank Presentation and the first themes with More themes →, Recent with a file search and More presentations → (to Open). No Copilot prompt, Favorites or Shared with Me |
 | New | Blank Presentation, template search with suggested searches, gallery of online templates and themes | Blank Presentation, search box, the built-in themes and the sample deck (`file.new {theme}`). No online templates |
 | Open | Recent, Shared with Me, OneDrive, This PC, Add a Place, Browse; Presentations / Folders; Recover Unsaved Presentations | Recent and Browse (`app.openDialog`), recent presentations with a search box (`file.open`), Recover Unsaved Presentations (`file.recovery.open`). No cloud places or Folders tab |
 | Info | Name and path, Upload / Share / Copy path / Open file location; Protect, Inspect, Version History, Manage Presentation; Properties, Related Dates, Related People | Name and path, Copy path, Open file location; Inspect Presentation (Accessibility Checker), Manage Presentation (Revert); Size, Slides, Hidden slides and editable Title, Subject, Tags, Categories, Company, Comments, Author (`file.info`, `file.properties`). No Protect, Version History or dates |
 | Save | Saves; a presentation never saved goes to Save As | Same (`file.save`) |
-| Save As | Places, folder, file name, type, Save, More options | Type (PowerPoint, DeckCraft, PDF, Outline, PNG, JPEG) and Save, which opens the system Save dialog (web: Download). .pptx/.deckcraft take the new file; the others are copies (`file.saveAs`, `file.export`) |
-| Print | Print and Copies, Printer, Print All / Selection / Current / Custom Range, Slides box, layout (Full Page Slides, Notes Pages, Outline, Handouts 1–9), sides, collation, colour, Edit Header & Footer; page preview with pager and zoom | Print, Print All Slides / Current Slide / Custom Range, Slides box (`1-3, 5`), Full Page Slides / Notes Pages / Handouts 1–9, Print Hidden Slides, Frame Slides, Edit Header & Footer; preview with pager. DeckCraft prints through a PDF (`file.export`) opened in the system viewer, which has the printers (web: downloaded). No printer list, copies, sides or colour |
+| Save As | Places, folder, file name, type, Save, More options | Type (PowerPoint, DeckZ, PDF, Outline, PNG, JPEG) and Save, which opens the system Save dialog (web: Download). .pptx/.deckz take the new file; the others are copies (`file.saveAs`, `file.export`) |
+| Print | Print and Copies, Printer, Print All / Selection / Current / Custom Range, Slides box, layout (Full Page Slides, Notes Pages, Outline, Handouts 1–9), sides, collation, colour, Edit Header & Footer; page preview with pager and zoom | Print, Print All Slides / Current Slide / Custom Range, Slides box (`1-3, 5`), Full Page Slides / Notes Pages / Handouts 1–9, Print Hidden Slides, Frame Slides, Edit Header & Footer; preview with pager. DeckZ prints through a PDF (`file.export`) opened in the system viewer, which has the printers (web: downloaded). No printer list, copies, sides or colour |
 | Share | Cloud sharing | Not offered |
 | Export | Create PDF/XPS Document, Create a Video, Create an Animated GIF, Package Presentation for CD, Create Handouts, Change File Type | Create PDF Document, Create Handouts (a PDF), Change File Type. No video, GIF or CD package |
 | Close | Closes; asks Save / Don't Save / Cancel about unsaved changes | Same (`file.close` after the prompt); Ctrl+W asks too |
-| Account | User information, sign-in, Office Background and Office Theme, product information, About | Appearance (light/dark, `view.dark`), product information, About DeckCraft. No accounts to sign in to |
+| Account | User information, sign-in, Office Background and Office Theme, product information, About | Appearance (light/dark, `view.dark`), product information, About DeckZ. No accounts to sign in to |
 | Options | Opens the PowerPoint Options dialog | Opens Preferences |
 
 ## Panes and dialogs
 
-| Pane / dialog | PowerPoint | DeckCraft |
+| Pane / dialog | PowerPoint | DeckZ |
 |---|---|---|
 | Format Shape / Picture / Text pane (Fill & Line, Effects, Size & Properties, Picture, Text Box) | full | partial: fill, gradient editor, line, some effects, size; no 3-D, thin picture/texture options |
 | Format Background pane | yes | yes |
@@ -68,7 +68,7 @@ menu colours taken from the theme tokens (menu `chrome`, page `card`).
 
 ## Direct manipulation
 
-| Behaviour | PowerPoint | DeckCraft |
+| Behaviour | PowerPoint | DeckZ |
 |---|---|---|
 | Selection handles, rotation handle, yellow adjustment handles | yes | yes |
 | Marquee, Shift/Cmd multi-select, Tab to cycle | yes | yes |

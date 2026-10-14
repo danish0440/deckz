@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  DeckZ MSI (WiX Toolset v5: `dotnet tool install -g wix`). Built by package.ps1:
+
+    wix build deckz.wxs -arch x64 -d Version=1.2.3 -d BinDir=... -d IconPath=... -o out.msi
+
+  Per-machine install into Program Files, a Start Menu shortcut, `.deckz` owned by
+  DeckZ, and DeckZ offered under "Open with" for .pptx/.potx/.ppsx (without taking over
+  the user's default app for them).
+
+  UpgradeCode is fixed for DeckZ forever (playbook §6); never change it.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+      Name="DeckZ"
+      Manufacturer="Learning Machines LLC"
+      Version="$(var.Version)"
+      UpgradeCode="53C65027-F89B-57DA-822F-EEE61F69CDC7"
+      Scope="perMachine"
+      Compressed="yes"
+      Language="1033">
+    <SummaryInformation Description="DeckZ presentations and slide shows" Manufacturer="Learning Machines LLC" />
+    <!-- Same-version upgrades let successive pre-releases of one X.Y.Z replace each other
+         (MSI versions are numeric, so 1.2.3-rc.1 and 1.2.3-rc.2 are both 1.2.3). -->
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+        DowngradeErrorMessage="A newer version of DeckZ is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="DeckzIcon.ico" SourceFile="$(var.IconPath)" />
+    <Property Id="ARPPRODUCTICON" Value="DeckzIcon.ico" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/danish0440/deckz" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/danish0440/deckz" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/danish0440/deckz/issues" />
+
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="DeckZ" />
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+
+    <Feature Id="Main" Title="DeckZ" Level="1">
+      <ComponentGroupRef Id="DeckzFiles" />
+    </Feature>
+  </Package>
+
+  <Fragment>
+    <ComponentGroup Id="DeckzFiles" Directory="INSTALLFOLDER">
+      <Component Id="DeckzApp" Guid="99346E61-DCE3-544B-B879-4E280F50D5D8">
+        <File Id="DeckzExe" Source="$(var.BinDir)\deckz.exe" KeyPath="yes">
+          <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="DeckZ"
+              Description="DeckZ presentations and slide shows" WorkingDirectory="INSTALLFOLDER" Advertise="yes"
+              Icon="DeckzIcon.ico" IconIndex="0" />
+        </File>
+
+        <!-- .deckz: DeckZ's own format. -->
+        <ProgId Id="DeckZ.Presentation" Description="DeckZ Presentation" Icon="DeckzExe" IconIndex="0">
+          <Extension Id="deckz" ContentType="application/x-deckz">
+            <Verb Id="open" Command="Open" TargetFile="DeckzExe" Argument="&quot;%1&quot;" />
+          </Extension>
+        </ProgId>
+
+        <!-- "Open with" for PowerPoint formats, without becoming the default. -->
+        <RegistryValue Root="HKLM" Key="Software\Classes\Applications\deckz.exe" Name="FriendlyAppName" Value="DeckZ" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\Applications\deckz.exe\shell\open\command" Value="&quot;[#DeckzExe]&quot; &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\Applications\deckz.exe\SupportedTypes" Name=".deckz" Value="" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\Applications\deckz.exe\SupportedTypes" Name=".pptx" Value="" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\Applications\deckz.exe\SupportedTypes" Name=".potx" Value="" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\Applications\deckz.exe\SupportedTypes" Name=".ppsx" Value="" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\.pptx\OpenWithProgids" Name="DeckZ.Presentation" Value="" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\.potx\OpenWithProgids" Name="DeckZ.Presentation" Value="" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\.ppsx\OpenWithProgids" Name="DeckZ.Presentation" Value="" Type="string" />
+
+        <RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\deckz.exe" Value="[#DeckzExe]" Type="string" />
+      </Component>
+
+      <Component Id="DeckzCli">
+        <File Id="DeckzCliExe" Source="$(var.BinDir)\deckz-cli.exe" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>

@@ -222,8 +222,8 @@ fn home_end_and_ctrl_home_end() {
         let st = s.doc().unwrap();
         let ts = st.selection.text.clone().unwrap();
         let l = crate::cmd::text::layout_for(st, &ts).unwrap();
-        let aff = if ts.at_line_end() { deckcraft_text::Affinity::Upstream } else { deckcraft_text::Affinity::Downstream };
-        l.caret_drawn(deckcraft_text::Pos { para: ts.caret.0, ch: ts.caret.1 }, aff).unwrap()
+        let aff = if ts.at_line_end() { deckz_text::Affinity::Upstream } else { deckz_text::Affinity::Downstream };
+        l.caret_drawn(deckz_text::Pos { para: ts.caret.0, ch: ts.caret.1 }, aff).unwrap()
     };
     let line1_top = layout.lines.iter().filter(|l| l.para == 0).nth(1).unwrap().top;
     assert_eq!(drawn(&s).1, line1_top);
@@ -321,7 +321,7 @@ fn bold_italic_underline_and_clear_on_a_caret_in_a_word() {
     let (mut s, id) = editing("hello wOrld. foo bar", (0, 8));
     let r = press(&mut s, "b", CTRL);
     assert_eq!(r["command"], "format.bold");
-    let body = |s: &Session| s.doc().unwrap().shape(deckcraft_model::ShapeId(id)).unwrap().text.clone().unwrap();
+    let body = |s: &Session| s.doc().unwrap().shape(deckz_model::ShapeId(id)).unwrap().text.clone().unwrap();
     let runs: Vec<(String, Option<bool>)> = body(&s).paragraphs[0].runs.iter().map(|r| (r.text.clone(), r.props.bold)).collect();
     assert_eq!(runs.iter().find(|r| r.1 == Some(true)).map(|r| r.0.as_str()), Some("wOrld"));
     // At a word boundary nothing visible changes.
@@ -380,7 +380,7 @@ fn shift_enter_and_word_and_paragraph_selection() {
     assert_eq!(sel(&s), ((1, 0), (1, 4)));
     s.execute("text.edit", &json!({"id": id, "at": [1, 2]})).unwrap();
     press(&mut s, "Enter", SHIFT);
-    let b = s.doc().unwrap().shape(deckcraft_model::ShapeId(id)).unwrap().text.clone().unwrap();
+    let b = s.doc().unwrap().shape(deckz_model::ShapeId(id)).unwrap().text.clone().unwrap();
     assert_eq!(b.paragraphs.len(), 2);
     assert_eq!(b.paragraphs[1].text(), "ne\u{b}xt");
 }

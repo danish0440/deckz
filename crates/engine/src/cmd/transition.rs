@@ -2,8 +2,8 @@
 
 use std::sync::Arc;
 
-use deckcraft_model::Transition;
-use deckcraft_model::anim::TRANSITIONS;
+use deckz_model::Transition;
+use deckz_model::anim::TRANSITIONS;
 use serde_json::{Value, json};
 
 use super::*;

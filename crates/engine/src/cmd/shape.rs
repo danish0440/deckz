@@ -1,9 +1,9 @@
 //! Shape Format: position and size, rotation, flips, geometry, fill, outline, effects, styles,
 //! names and alt text.
 
-use deckcraft_color::{ColorTransform, Rgba, SchemeSlot};
-use deckcraft_model::style::{Dash, Glow, Gradient, GradientShape, GradientStop, LineEnd, PatternFill, PictureFill, Reflection, Shadow};
-use deckcraft_model::{ColorRef, Effects, Fill, Geom, Line, ShapeStyle};
+use deckz_color::{ColorTransform, Rgba, SchemeSlot};
+use deckz_model::style::{Dash, Glow, Gradient, GradientShape, GradientStop, LineEnd, PatternFill, PictureFill, Reflection, Shadow};
+use deckz_model::{ColorRef, Effects, Fill, Geom, Line, ShapeStyle};
 use serde_json::{Value, json};
 
 use super::*;
@@ -203,7 +203,7 @@ fn adjust(s: &mut Session, p: &Value) -> Result<Value> {
     let v = f64_param(p, "value").ok_or_else(|| bad("shape.adjust", "missing `value`"))?;
     edit_geometry(s, p, "shape.adjust", |sh| {
         if let Geom::Preset { name, adj } = &mut sh.geom {
-            let defaults = deckcraft_geom::preset::info(name).map(|x| x.defaults).unwrap_or(&[]);
+            let defaults = deckz_geom::preset::info(name).map(|x| x.defaults).unwrap_or(&[]);
             while adj.len() <= i {
                 let k = adj.len();
                 adj.push(defaults.get(k).copied().unwrap_or(0.0));
@@ -218,7 +218,7 @@ fn adjust(s: &mut Session, p: &Value) -> Result<Value> {
 
 fn change(s: &mut Session, p: &Value) -> Result<Value> {
     let name = str_param(p, "preset").ok_or_else(|| bad("shape.change", "missing `preset`"))?;
-    let info = deckcraft_geom::preset::info(name).ok_or_else(|| bad("shape.change", format!("unknown preset `{name}`")))?;
+    let info = deckz_geom::preset::info(name).ok_or_else(|| bad("shape.change", format!("unknown preset `{name}`")))?;
     edit_geometry(s, p, "shape.change", |sh| {
         sh.geom = Geom::preset(info.name);
         Ok(())
@@ -295,7 +295,7 @@ fn fill(s: &mut Session, p: &Value) -> Result<Value> {
     }
     // Transparency on an inherited (style) fill needs the effective colour.
     let st = s.doc()?;
-    let ctx_fill: Vec<(deckcraft_model::ShapeId, Option<Fill>)> = {
+    let ctx_fill: Vec<(deckz_model::ShapeId, Option<Fill>)> = {
         let ctx = super::text::ctx_for(&st.doc, &st.selection);
         targets(s, p)?
             .into_iter()
@@ -304,7 +304,7 @@ fn fill(s: &mut Session, p: &Value) -> Result<Value> {
                     (
                         id,
                         ctx.as_ref().and_then(|c| {
-                            let (f, ph) = deckcraft_model::resolve::fill(c, sh);
+                            let (f, ph) = deckz_model::resolve::fill(c, sh);
                             f.map(|f| match f {
                                 Fill::Solid { color } => Fill::solid(ColorRef::rgb(c.color(&color, ph))),
                                 other => other,
@@ -346,14 +346,14 @@ fn line(s: &mut Session, p: &Value) -> Result<Value> {
     let head = str_param(p, "head").map(line_end);
     let tail = str_param(p, "tail").map(line_end);
     let cap = str_param(p, "cap").map(|c| match c {
-        "round" => deckcraft_model::style::LineCap::Round,
-        "square" => deckcraft_model::style::LineCap::Square,
-        _ => deckcraft_model::style::LineCap::Flat,
+        "round" => deckz_model::style::LineCap::Round,
+        "square" => deckz_model::style::LineCap::Square,
+        _ => deckz_model::style::LineCap::Flat,
     });
     let join = str_param(p, "join").map(|c| match c {
-        "bevel" => deckcraft_model::style::LineJoin::Bevel,
-        "miter" => deckcraft_model::style::LineJoin::Miter,
-        _ => deckcraft_model::style::LineJoin::Round,
+        "bevel" => deckz_model::style::LineJoin::Bevel,
+        "miter" => deckz_model::style::LineJoin::Miter,
+        _ => deckz_model::style::LineJoin::Round,
     });
     edit_shapes(s, p, "shape.line", |sh| {
         if reset {
@@ -544,7 +544,7 @@ fn quick_style(s: &mut Session, p: &Value) -> Result<Value> {
         sh.line.clone_from(&l);
         sh.effects = None;
         if let Some(t) = sh.text.as_mut() {
-            deckcraft_model::edit::format_all(t, &|r| r.fill = None);
+            deckz_model::edit::format_all(t, &|r| r.fill = None);
         }
         Ok(())
     })
@@ -590,7 +590,7 @@ fn lock(s: &mut Session, p: &Value) -> Result<Value> {
     })
 }
 
-fn set_locked(sh: &mut deckcraft_model::Shape, to: bool, depth: usize) {
+fn set_locked(sh: &mut deckz_model::Shape, to: bool, depth: usize) {
     sh.locked = to;
     if depth > 64 {
         return;
@@ -620,7 +620,7 @@ fn set_default(s: &mut Session, _p: &Value) -> Result<Value> {
 fn crop(s: &mut Session, p: &Value) -> Result<Value> {
     let c = [f64_param(p, "left"), f64_param(p, "top"), f64_param(p, "right"), f64_param(p, "bottom")];
     edit_geometry(s, p, "picture.crop", |sh| {
-        if let deckcraft_model::ShapeKind::Picture { fill } = &mut sh.kind {
+        if let deckz_model::ShapeKind::Picture { fill } = &mut sh.kind {
             for (i, v) in c.iter().enumerate() {
                 if let (Some(v), Some(slot)) = (v, fill.crop.get_mut(i)) {
                     *slot = v.clamp(-10.0, 0.95);
@@ -633,7 +633,7 @@ fn crop(s: &mut Session, p: &Value) -> Result<Value> {
 
 fn picture_adjust(s: &mut Session, p: &Value) -> Result<Value> {
     edit_shapes(s, p, "picture.adjust", |sh| {
-        if let deckcraft_model::ShapeKind::Picture { fill } = &mut sh.kind {
+        if let deckz_model::ShapeKind::Picture { fill } = &mut sh.kind {
             let a = &mut fill.adjust;
             if bool_or(p, "reset", false) {
                 *a = Default::default();
@@ -660,7 +660,7 @@ fn picture_adjust(s: &mut Session, p: &Value) -> Result<Value> {
 
 fn picture_reset(s: &mut Session, p: &Value) -> Result<Value> {
     edit_shapes(s, p, "picture.reset", |sh| {
-        if let deckcraft_model::ShapeKind::Picture { fill } = &mut sh.kind {
+        if let deckz_model::ShapeKind::Picture { fill } = &mut sh.kind {
             fill.adjust = Default::default();
             fill.crop = [0.0; 4];
             fill.alpha = None;
@@ -676,7 +676,7 @@ fn picture_change(s: &mut Session, p: &Value) -> Result<Value> {
     let ct = super::insert::content_type(&name, &bytes);
     let media = s.edit(|doc, _| Ok(doc.add_media(&name, ct, bytes)))?;
     edit_shapes(s, p, "picture.change", |sh| {
-        if let deckcraft_model::ShapeKind::Picture { fill } = &mut sh.kind {
+        if let deckz_model::ShapeKind::Picture { fill } = &mut sh.kind {
             fill.media = media;
             fill.crop = [0.0; 4];
         }
@@ -686,7 +686,7 @@ fn picture_change(s: &mut Session, p: &Value) -> Result<Value> {
 
 fn media_options(s: &mut Session, p: &Value) -> Result<Value> {
     edit_shapes(s, p, "media.options", |sh| {
-        if let deckcraft_model::ShapeKind::Media(m) = &mut sh.kind {
+        if let deckz_model::ShapeKind::Media(m) = &mut sh.kind {
             if let Some(v) = bool_param(p, "autoplay") {
                 m.autoplay = v;
             }
@@ -727,8 +727,8 @@ fn media_options(s: &mut Session, p: &Value) -> Result<Value> {
     Ok(json!({}))
 }
 
-fn shape_id(p: &Value, key: &str) -> Option<deckcraft_model::ShapeId> {
-    p.get(key).and_then(Value::as_u64).map(|v| deckcraft_model::ShapeId(v as u32))
+fn shape_id(p: &Value, key: &str) -> Option<deckz_model::ShapeId> {
+    p.get(key).and_then(Value::as_u64).map(|v| deckz_model::ShapeId(v as u32))
 }
 
 fn sites(s: &mut Session, p: &Value) -> Result<Value> {
@@ -746,7 +746,7 @@ fn connect(s: &mut Session, p: &Value) -> Result<Value> {
     if a.is_empty() || b.is_empty() {
         return Err(bad("shape.connect", "both shapes need connection sites (lines and groups have none)"));
     }
-    let pick = |v: &[deckcraft_geom::Point], key: &str| usize_param(p, key).filter(|i| *i < v.len());
+    let pick = |v: &[deckz_geom::Point], key: &str| usize_param(p, key).filter(|i| *i < v.len());
     let (ia, ib) = match (pick(&a, "fromSite"), pick(&b, "toSite")) {
         (Some(i), Some(j)) => (i, j),
         (fi, fj) => {
@@ -768,24 +768,24 @@ fn connect(s: &mut Session, p: &Value) -> Result<Value> {
         None => {
             let preset = str_param(p, "preset").unwrap_or("straightConnector1");
             let r = s.execute("shape.insert", &json!({"preset": preset, "rect": [p0.x, p0.y, 1.0, 1.0]}))?;
-            deckcraft_model::ShapeId(r.get("id").and_then(Value::as_u64).ok_or_else(|| bad("shape.connect", "insert failed"))? as u32)
+            deckz_model::ShapeId(r.get("id").and_then(Value::as_u64).ok_or_else(|| bad("shape.connect", "insert failed"))? as u32)
         }
     };
     s.edit(|doc, sel| {
         let list = crate::shapes_mut(doc, sel).ok_or_else(|| bad("shape.connect", "no slide"))?;
-        let sh = deckcraft_model::find_shape_mut(list, id).ok_or_else(|| bad("shape.connect", "no such line"))?;
+        let sh = deckz_model::find_shape_mut(list, id).ok_or_else(|| bad("shape.connect", "no such line"))?;
         if !sh.is_line() {
             return Err(bad("shape.connect", "`id` is not a line or connector"));
         }
         sh.xfrm = Some(crate::tools::line_xfrm(p0, p1, 0.0));
-        sh.kind = deckcraft_model::ShapeKind::Connector { start: Some((from, ia as u32)), end: Some((to, ib as u32)) };
+        sh.kind = deckz_model::ShapeKind::Connector { start: Some((from, ia as u32)), end: Some((to, ib as u32)) };
         Ok(())
     })?;
     Ok(json!({"id": id.0, "fromSite": ia, "toSite": ib}))
 }
 
 /// Path data through `pts` (shape-local): straight segments, or a Catmull-Rom curve as cubics.
-pub fn freeform_path(pts: &[deckcraft_geom::Point], closed: bool, smooth: bool) -> String {
+pub fn freeform_path(pts: &[deckz_geom::Point], closed: bool, smooth: bool) -> String {
     let f = |v: f64| {
         let s = format!("{:.2}", v);
         s.trim_end_matches('0').trim_end_matches('.').to_string()
@@ -793,7 +793,7 @@ pub fn freeform_path(pts: &[deckcraft_geom::Point], closed: bool, smooth: bool) 
     let mut d = format!("M {} {}", f(pts[0].x), f(pts[0].y));
     let n = pts.len();
     if smooth && n > 2 {
-        let at = |i: isize| -> deckcraft_geom::Point {
+        let at = |i: isize| -> deckz_geom::Point {
             if closed { pts[i.rem_euclid(n as isize) as usize] } else { pts[i.clamp(0, n as isize - 1) as usize] }
         };
         let segs = if closed { n } else { n - 1 };
@@ -815,12 +815,12 @@ pub fn freeform_path(pts: &[deckcraft_geom::Point], closed: bool, smooth: bool) 
 }
 
 fn freeform(s: &mut Session, p: &Value) -> Result<Value> {
-    let pts: Vec<deckcraft_geom::Point> = p
+    let pts: Vec<deckz_geom::Point> = p
         .get("points")
         .and_then(Value::as_array)
         .map(|a| {
             a.iter()
-                .filter_map(|v| Some(deckcraft_geom::Point::new(v.get(0)?.as_f64()?, v.get(1)?.as_f64()?)))
+                .filter_map(|v| Some(deckz_geom::Point::new(v.get(0)?.as_f64()?, v.get(1)?.as_f64()?)))
                 .filter(|q| q.x.is_finite() && q.y.is_finite())
                 .take(20_000)
                 .collect()
@@ -831,30 +831,30 @@ fn freeform(s: &mut Session, p: &Value) -> Result<Value> {
     }
     let closed = bool_or(p, "closed", false) && pts.len() > 2;
     let smooth = bool_or(p, "smooth", false);
-    let mut bb = deckcraft_geom::Rect::from_points(pts[0], pts[0]);
+    let mut bb = deckz_geom::Rect::from_points(pts[0], pts[0]);
     for q in &pts {
         bb = bb.union_pt(*q);
     }
     let (w, h) = (bb.width().max(1.0), bb.height().max(1.0));
-    let local: Vec<deckcraft_geom::Point> = pts.iter().map(|q| deckcraft_geom::Point::new(q.x - bb.x0, q.y - bb.y0)).collect();
+    let local: Vec<deckz_geom::Point> = pts.iter().map(|q| deckz_geom::Point::new(q.x - bb.x0, q.y - bb.y0)).collect();
     let d = freeform_path(&local, closed, smooth);
     // Closed shapes take the default shape style, open paths the line style.
     let r = s.execute("shape.insert", &json!({"preset": if closed { "rect" } else { "line" }, "rect": [bb.x0, bb.y0, w, h]}))?;
-    let id = deckcraft_model::ShapeId(r.get("id").and_then(Value::as_u64).ok_or_else(|| bad("shape.freeform", "insert failed"))? as u32);
+    let id = deckz_model::ShapeId(r.get("id").and_then(Value::as_u64).ok_or_else(|| bad("shape.freeform", "insert failed"))? as u32);
     s.edit(|doc, sel| {
         let list = crate::shapes_mut(doc, sel).ok_or_else(|| bad("shape.freeform", "no slide"))?;
-        let sh = deckcraft_model::find_shape_mut(list, id).ok_or_else(|| bad("shape.freeform", "insert failed"))?;
+        let sh = deckz_model::find_shape_mut(list, id).ok_or_else(|| bad("shape.freeform", "insert failed"))?;
         sh.geom = Geom::Custom {
-            paths: vec![deckcraft_model::CustomPath {
+            paths: vec![deckz_model::CustomPath {
                 w,
                 h,
                 d: d.clone(),
-                fill: if closed { deckcraft_geom::preset::FillMode::Norm } else { deckcraft_geom::preset::FillMode::None },
+                fill: if closed { deckz_geom::preset::FillMode::Norm } else { deckz_geom::preset::FillMode::None },
                 stroke: true,
             }],
         };
-        sh.xfrm = Some(deckcraft_geom::Xfrm::new(bb.x0, bb.y0, w, h));
-        sh.kind = deckcraft_model::ShapeKind::Shape;
+        sh.xfrm = Some(deckz_geom::Xfrm::new(bb.x0, bb.y0, w, h));
+        sh.kind = deckz_model::ShapeKind::Shape;
         sh.name = format!("Freeform {}", id.0);
         Ok(())
     })?;

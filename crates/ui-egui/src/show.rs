@@ -1,10 +1,10 @@
-//! Slide Show: full-screen playback with transitions and animations (`deckcraft-anim`),
+//! Slide Show: full-screen playback with transitions and animations (`deckz-anim`),
 //! keyboard/mouse navigation, pen, black/white screens, presenter view and rehearsed timings.
 
-use deckcraft_anim::{Layer, LinkJump, ShowAction, ShowState, Source, Timeline};
-use deckcraft_model::text::Hyperlink;
-use deckcraft_model::{Presentation, ShapeId};
-use deckcraft_render::{ParaState, RenderOpts, ShapeState};
+use deckz_anim::{Layer, LinkJump, ShowAction, ShowState, Source, Timeline};
+use deckz_model::text::Hyperlink;
+use deckz_model::{Presentation, ShapeId};
+use deckz_render::{ParaState, RenderOpts, ShapeState};
 use egui::{Align2, Color32, CornerRadius, Mesh, Pos2, Rect, Sense, Stroke, TextureHandle, Ui, pos2, vec2};
 use serde_json::json;
 
@@ -41,7 +41,7 @@ pub struct Show {
     /// The slide shown before the current one (the Last Slide Viewed action).
     last_viewed: Option<usize>,
     /// Click areas of hyperlinks and shape actions on slide `.0`, in slide points.
-    links: Option<(usize, Vec<deckcraft_render::PlacedLink>)>,
+    links: Option<(usize, Vec<deckz_render::PlacedLink>)>,
 }
 
 #[derive(Clone, PartialEq)]
@@ -184,7 +184,7 @@ fn state_for(tl: &Timeline, id: ShapeId, step: usize, t: f64) -> ShapeState {
     ShapeState {
         visible: a.visible,
         opacity: a.opacity,
-        offset: deckcraft_geom::Vec2::new(a.offset_x, a.offset_y),
+        offset: deckz_geom::Vec2::new(a.offset_x, a.offset_y),
         scale: (a.scale_x, a.scale_y),
         rotate: a.rotate,
         clip: a.clip,
@@ -194,7 +194,7 @@ fn state_for(tl: &Timeline, id: ShapeId, step: usize, t: f64) -> ShapeState {
             .into_iter()
             .map(|p| {
                 let a = tl.state(id, Some(p), step, t);
-                (p, ParaState { visible: a.visible, opacity: a.opacity, offset: deckcraft_geom::Vec2::new(a.offset_x, a.offset_y) })
+                (p, ParaState { visible: a.visible, opacity: a.opacity, offset: deckz_geom::Vec2::new(a.offset_x, a.offset_y) })
             })
             .collect(),
     }
@@ -206,14 +206,14 @@ fn fit(avail: Rect, doc: &Presentation) -> Rect {
     Rect::from_center_size(avail.center(), vec2(sw * s, sh * s))
 }
 
-/// A transition layer as an egui mesh: [`deckcraft_anim::layer_mesh`]'s triangles (perspective
+/// A transition layer as an egui mesh: [`deckz_anim::layer_mesh`]'s triangles (perspective
 /// cards subdivided so their pictures stay straight) with per-vertex opacity.
 fn quad_mesh(tex: Option<egui::TextureId>, rect: Rect, l: &Layer, color: Color32) -> Mesh {
     let mut m = match tex {
         Some(id) => Mesh::with_texture(id),
         None => Mesh::default(),
     };
-    let (verts, tris) = deckcraft_anim::layer_mesh(l);
+    let (verts, tris) = deckz_anim::layer_mesh(l);
     for v in &verts {
         let a = if v.a.is_finite() { v.a.clamp(0.0, 1.0) } else { 0.0 };
         let col = if tex.is_some() { Color32::from_white_alpha((a * 255.0).round() as u8) } else { color.gamma_multiply(a as f32) };
@@ -228,11 +228,11 @@ fn quad_mesh(tex: Option<egui::TextureId>, rect: Rect, l: &Layer, color: Color32
 
 /// Render the backgrounds and contents of a transition's two slides into textures, once.
 fn part_textures(ctx: &egui::Context, doc: &Presentation, from: Option<usize>, to: usize, size: (u32, u32)) -> [Option<TextureHandle>; 4] {
-    use deckcraft_render::SlidePart;
+    use deckz_render::SlidePart;
     let threads = if cfg!(target_arch = "wasm32") { 0 } else { std::thread::available_parallelism().map(|n| n.get().min(8) as u16).unwrap_or(0) };
     let opts = RenderOpts { scale: size.0 as f64 / doc.slide_size.width.max(1.0), size: Some(size), threads, ..Default::default() };
     let tex = |i: usize, part: SlidePart, name: &str| {
-        let img = deckcraft_render::render_slide_part(doc, i, part, &opts);
+        let img = deckz_render::render_slide_part(doc, i, part, &opts);
         ctx.load_texture(name, crate::textures::to_color_image(&img, false), egui::TextureOptions::LINEAR)
     };
     [
@@ -401,7 +401,7 @@ pub fn ui(app: &mut SlideApp, ui: &mut Ui) {
         let hidden: Vec<ShapeId> = media
             .iter()
             .filter(|(id, _, clip)| {
-                clip.hide_while_not_playing && !app.media.status(*id).is_some_and(|s| s.state != deckcraft_media::PlayState::Ended)
+                clip.hide_while_not_playing && !app.media.status(*id).is_some_and(|s| s.state != deckz_media::PlayState::Ended)
             })
             .map(|m| m.0)
             .collect();
@@ -424,7 +424,7 @@ pub fn ui(app: &mut SlideApp, ui: &mut Ui) {
             };
             let threads =
                 if cfg!(target_arch = "wasm32") { 0 } else { std::thread::available_parallelism().map(|n| n.get().min(8) as u16).unwrap_or(0) };
-            let img = deckcraft_render::render_slide(
+            let img = deckz_render::render_slide(
                 &doc,
                 idx,
                 &RenderOpts {
@@ -460,7 +460,7 @@ pub fn ui(app: &mut SlideApp, ui: &mut Ui) {
                 tr.from
                     .and_then(|i| doc.slides.get(i).map(|a| (i, a)))
                     .zip(doc.slides.get(idx))
-                    .map(|((i, a), b)| (i, deckcraft_anim::morph_frame(&doc, a, b, p, &hidden_b)))
+                    .map(|((i, a), b)| (i, deckz_anim::morph_frame(&doc, a, b, p, &hidden_b)))
             }
             _ => None,
         };
@@ -470,17 +470,17 @@ pub fn ui(app: &mut SlideApp, ui: &mut Ui) {
                 if cfg!(target_arch = "wasm32") { 0 } else { std::thread::available_parallelism().map(|n| n.get().min(8) as u16).unwrap_or(0) };
             let opts =
                 RenderOpts { scale: size.0 as f64 / doc.slide_size.width.max(1.0), size: Some(size), state: Some(&f), threads, ..Default::default() };
-            let text: Vec<deckcraft_render::TextMorph> = m
+            let text: Vec<deckz_render::TextMorph> = m
                 .text
                 .iter()
-                .map(|x| deckcraft_render::TextMorph { old: x.old, new: x.new, from: x.from, to: x.to, chars: x.chars, t: m.mix })
+                .map(|x| deckz_render::TextMorph { old: x.old, new: x.new, from: x.from, to: x.to, chars: x.chars, t: m.mix })
                 .collect();
-            let paths: Vec<deckcraft_render::PathMorph> = m
+            let paths: Vec<deckz_render::PathMorph> = m
                 .paths
                 .iter()
-                .map(|x| deckcraft_render::PathMorph { id: x.id, from: x.from.clone(), from_box: x.from_box, to_box: x.to_box, t: m.mix })
+                .map(|x| deckz_render::PathMorph { id: x.id, from: x.from.clone(), from_box: x.from_box, to_box: x.to_box, t: m.mix })
                 .collect();
-            let img = deckcraft_render::render_blend(&doc, from, idx, m.mix, &m.shapes, &text, &paths, &opts);
+            let img = deckz_render::render_blend(&doc, from, idx, m.mix, &m.shapes, &text, &paths, &opts);
             let ci = crate::textures::to_color_image(&img, false);
             let frame = match tr.morph.take() {
                 Some(mut h) => {
@@ -498,13 +498,13 @@ pub fn ui(app: &mut SlideApp, ui: &mut Ui) {
             if p < 1.0 {
                 // Slides split into background and content are rendered once per transition;
                 // every frame only composites cached textures.
-                if tr.parts.is_none() && deckcraft_anim::uses_slide_parts(&tr.kind, &tr.option) {
+                if tr.parts.is_none() && deckz_anim::uses_slide_parts(&tr.kind, &tr.option) {
                     tr.parts = Some(part_textures(&ctx, &doc, tr.from, idx, size));
                 }
                 let aspect = doc.slide_size.width / doc.slide_size.height.max(1.0);
                 let part = |k: usize| tr.parts.as_ref().and_then(|p| p.get(k).cloned().flatten());
                 let parts = [part(0), part(1), part(2), part(3)];
-                for l in deckcraft_anim::transition_frame(&tr.kind, &tr.option, p, aspect) {
+                for l in deckz_anim::transition_frame(&tr.kind, &tr.option, p, aspect) {
                     let old_or_black = |t: Option<&TextureHandle>| match t {
                         Some(o) => quad_mesh(Some(o.id()), srect, &l, Color32::WHITE),
                         None => quad_mesh(None, srect, &l, Color32::BLACK),
@@ -713,7 +713,7 @@ fn show_media(app: &mut SlideApp, show: &mut Show, doc: &Presentation) {
 }
 
 /// The media shape under the pointer on the shown slide.
-fn media_hit(ctx: &egui::Context, ui: &Ui, show: &Show, doc: &Presentation) -> Option<(ShapeId, deckcraft_model::MediaClip)> {
+fn media_hit(ctx: &egui::Context, ui: &Ui, show: &Show, doc: &Presentation) -> Option<(ShapeId, deckz_model::MediaClip)> {
     let p = ctx.input(|i| i.pointer.interact_pos())?;
     let full = ui.max_rect();
     let avail = if show.reading { Rect::from_min_max(full.min, pos2(full.max.x, full.max.y - 34.0)) } else { full };
@@ -736,14 +736,14 @@ fn link_hit(ctx: &egui::Context, ui: &Ui, show: &mut Show, doc: &Presentation) -
     let (x, y) = ((p.x - srect.min.x) as f64 / k, (p.y - srect.min.y) as f64 / k);
     let i = show.state.slide;
     if show.links.as_ref().is_none_or(|(s, _)| *s != i) {
-        show.links = Some((i, deckcraft_render::place_slide(doc, i).links));
+        show.links = Some((i, deckz_render::place_slide(doc, i).links));
     }
     let (_, links) = show.links.as_ref()?;
     links.iter().rev().find(|l| l.rect.x0 <= x && x <= l.rect.x1 && l.rect.y0 <= y && y <= l.rect.y1).map(|l| l.link.clone())
 }
 
 /// A slide-space box on screen, the slide being drawn in `srect` at `k` pixels per point.
-fn on_screen(srect: Rect, k: f32, x: &deckcraft_geom::Xfrm) -> Rect {
+fn on_screen(srect: Rect, k: f32, x: &deckz_geom::Xfrm) -> Rect {
     Rect::from_min_size(pos2(srect.min.x + x.x as f32 * k, srect.min.y + x.y as f32 * k), vec2(x.w as f32 * k, x.h as f32 * k))
 }
 
@@ -770,12 +770,12 @@ impl Show {
 
 fn presenter_window(ctx: &egui::Context, show: &mut Show, doc: &Presentation, now: f64, keep: &mut bool) {
     let cur = show.state.slide;
-    let next = deckcraft_anim::show_order(doc).into_iter().find(|i| *i > cur);
+    let next = deckz_anim::show_order(doc).into_iter().find(|i| *i > cur);
     let cur_tex = show.tex.as_ref().map(|(_, t)| t.clone());
     if let Some(n) = next
         && show.next_tex.as_ref().is_none_or(|(k, _)| *k != n)
     {
-        let img = deckcraft_render::render_slide(
+        let img = deckz_render::render_slide(
             doc,
             n,
             &RenderOpts {
@@ -791,8 +791,8 @@ fn presenter_window(ctx: &egui::Context, show: &mut Show, doc: &Presentation, no
     let elapsed = now - show.show_start;
     let mut actions = vec![];
     ctx.show_viewport_immediate(
-        egui::ViewportId::from_hash_of("deckcraft_presenter"),
-        egui::ViewportBuilder::default().with_title("Presenter View — DeckCraft").with_inner_size([1100.0, 700.0]),
+        egui::ViewportId::from_hash_of("deckz_presenter"),
+        egui::ViewportBuilder::default().with_title("Presenter View — DeckZ").with_inner_size([1100.0, 700.0]),
         |ui, _| {
             egui::CentralPanel::default().frame(egui::Frame::NONE.fill(Color32::from_gray(24)).inner_margin(egui::Margin::same(16))).show(ui, |ui| {
                 ui.horizontal(|ui| {
@@ -871,7 +871,7 @@ mod tests {
     fn a_transition_keeps_the_old_slide_in_its_own_texture() {
         // #33: the old slide's handle was cloned, so the new slide was rendered into the same
         // texture and every transition blended the new slide with itself.
-        let mut s = deckcraft_engine::Session::with_new();
+        let mut s = deckz_engine::Session::with_new();
         s.execute("slide.new", &json!({})).unwrap();
         s.execute("transition.set", &json!({"kind": "fade", "index": 1})).unwrap();
         let doc = s.active().unwrap().doc.clone();

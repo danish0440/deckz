@@ -88,7 +88,7 @@ fn office_twin(family: &str) -> Option<&'static str> {
 }
 
 /// Office's downloadable (cloud) families: PowerPoint fetches them when a document uses them, so
-/// they draw as themselves there, not as Calibri. Without them DeckCraft keeps their closest open
+/// they draw as themselves there, not as Calibri. Without them DeckZ keeps their closest open
 /// substitute ([`substitutes`]; Aptos as Inter).
 fn is_office_cloud_font(family: &str) -> bool {
     let f = family.to_ascii_lowercase();
@@ -479,7 +479,7 @@ pub fn system_font_dirs() -> Vec<std::path::PathBuf> {
             let l = std::path::PathBuf::from(l);
             dirs.push(l.join("Microsoft\\Windows\\Fonts"));
             // Fonts Microsoft Office downloads on demand (Aptos…), used where Office put them;
-            // DeckCraft never ships or needs them.
+            // DeckZ never ships or needs them.
             dirs.push(l.join("Microsoft\\FontCache\\4\\CloudFonts"));
         }
     } else {
@@ -879,7 +879,7 @@ impl FontDb {
     /// when it is installed or bundled, or a metric-compatible stand-in (Carlito for Calibri,
     /// Liberation Sans for Arial…), or the family PowerPoint maps it to (Liberation Sans as Arial,
     /// see `office_twin`); any other missing family is drawn in Calibri (or Carlito).
-    /// DeckCraft's own default family keeps [`FontDb::face`]'s fallbacks.
+    /// DeckZ's own default family keeps [`FontDb::face`]'s fallbacks.
     pub fn document_face(&self, family: &str, style: &str) -> Arc<FontFace> {
         if family.eq_ignore_ascii_case(FALLBACK_FAMILY) || has_metric_twin(family) || is_office_cloud_font(family) || self.has_family(family) {
             return self.face(family, style);

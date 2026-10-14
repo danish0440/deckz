@@ -1,4 +1,4 @@
-//! DeckCraft's egui frontend: a PowerPoint-style UI over `deckcraft-engine`.
+//! DeckZ's egui frontend: a PowerPoint-style UI over `deckz-engine`.
 //!
 //! The UI is thin: every action goes through [`SlideApp::run`], which handles UI commands
 //! (views, panes, zoom) here and sends everything else to the engine. The ribbon, menus,
@@ -30,7 +30,7 @@ pub mod widgets;
 
 use std::sync::mpsc::{Receiver, Sender};
 
-use deckcraft_engine::{Mods, Session, UiRequest};
+use deckz_engine::{Mods, Session, UiRequest};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
@@ -61,7 +61,7 @@ pub struct Services {
     /// Image on the system clipboard (PNG bytes), when the host can read one.
     pub clipboard_image: Option<Box<dyn FnMut() -> Option<Vec<u8>>>>,
     /// Audio output for media playback (cpal on desktop); without one media plays silently.
-    pub audio_out: Option<Box<dyn deckcraft_media::AudioOut>>,
+    pub audio_out: Option<Box<dyn deckz_media::AudioOut>>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -158,7 +158,7 @@ pub const UI_COMMANDS: &[(&str, &str, Option<&str>, &str)] = &[
     ("app.backstage", "File", Some("Alt+F"), "{page?: home|new|open|info|saveAs|print|export|account, on?: bool}"),
     ("app.closePresentation", "Close", Some("Cmd+W"), "{}"),
     ("app.print", "Print", Some("Cmd+P"), "{layout?, perPage?, slides?, includeHidden?, frame?}"),
-    ("app.about", "About DeckCraft", None, "{}"),
+    ("app.about", "About DeckZ", None, "{}"),
     ("app.palette", "Command Palette", Some("Cmd+Shift+P"), "{}"),
     ("app.preferences", "Preferences…", Some("Cmd+,"), "{}"),
     ("app.openDialog", "Open…", None, "{purpose?}"),
@@ -352,7 +352,7 @@ impl SlideApp {
     }
 
     /// Exports the active presentation as `fmt` (`pdf`, `png`, `pngAll`, `jpeg`, `pptx`,
-    /// `deckcraft`, `outline`) through `file.export`: the save picker on the desktop, a download
+    /// `deckz`, `outline`) through `file.export`: the save picker on the desktop, a download
     /// on the web. `extra` adds `file.export` params (the PDF's layout, slides…). The
     /// presentation keeps its own file. Returns whether a file was written or handed over.
     pub fn export_as(&mut self, fmt: &str, extra: Value) -> bool {
@@ -364,9 +364,9 @@ impl SlideApp {
             "jpeg" | "jpg" => ("jpg", "jpeg", false),
             "pptx" => ("pptx", "pptx", false),
             "outline" | "txt" => ("txt", "outline", false),
-            "deckcraft" => ("deckcraft", "deckcraft", false),
+            "deckz" => ("deckz", "deckz", false),
             other => {
-                self.set_status(format!("DeckCraft can't export “{other}”"));
+                self.set_status(format!("DeckZ can't export “{other}”"));
                 return false;
             }
         };
@@ -388,18 +388,18 @@ impl SlideApp {
         let Some(doc) = self.session.active().map(|d| d.doc.clone()) else { return false };
         let bytes = match format {
             "png" | "jpeg" => {
-                let img = deckcraft_render::render_slide(&doc, slide, &deckcraft_render::RenderOpts { scale: 2.0, ..Default::default() });
+                let img = deckz_render::render_slide(&doc, slide, &deckz_render::RenderOpts { scale: 2.0, ..Default::default() });
                 Ok(if format == "png" { img.to_png() } else { img.to_jpeg(92) })
             }
-            "pdf" => deckcraft_engine::cmd::file::pdf_bytes(&doc, &extra),
-            other => deckcraft_engine::cmd::file::save_bytes(&doc, other),
+            "pdf" => deckz_engine::cmd::file::pdf_bytes(&doc, &extra),
+            other => deckz_engine::cmd::file::save_bytes(&doc, other),
         };
         self.download(&suggested, bytes)
     }
 
     /// Hands `bytes` to the browser as a download (web); false (with the reason in the status
     /// bar) when there are no bytes or no way to download.
-    fn download(&mut self, name: &str, bytes: deckcraft_engine::Result<Vec<u8>>) -> bool {
+    fn download(&mut self, name: &str, bytes: deckz_engine::Result<Vec<u8>>) -> bool {
         match (bytes, self.services.download.as_mut()) {
             (Ok(b), Some(dl)) => {
                 dl(name, &b);
@@ -416,7 +416,7 @@ impl SlideApp {
         }
     }
 
-    /// File › Print: DeckCraft prints through a PDF. On the desktop the PDF (with the Print page's
+    /// File › Print: DeckZ prints through a PDF. On the desktop the PDF (with the Print page's
     /// layout, slides and options) is written to the temporary folder and opened in the system's
     /// PDF viewer, which has the printers; on the web it downloads.
     pub fn print_pdf(&mut self, params: Value) -> bool {
@@ -424,7 +424,7 @@ impl SlideApp {
         let mut params = if params.is_object() { params } else { json!({}) };
         if self.services.pick_save.is_none() {
             // Web: the browser hands the PDF to the user.
-            let bytes = deckcraft_engine::cmd::file::pdf_bytes(&doc, &params);
+            let bytes = deckz_engine::cmd::file::pdf_bytes(&doc, &params);
             return self.download(&format!("{title}.pdf"), bytes);
         }
         let safe: String = title.chars().map(|c| if c.is_alphanumeric() || c == ' ' || c == '-' { c } else { '_' }).collect();
@@ -539,14 +539,14 @@ impl SlideApp {
             "app.insertPictureDialog" => self.pick_and_insert("picture", "insert.picture"),
             "app.insertAudioDialog" => self.pick_and_insert("audio", "insert.audio"),
             "app.insertVideoDialog" => self.pick_and_insert("video", "insert.video"),
-            "app.saveAsDialog" => self.save_as_dialog("deckcraft"),
+            "app.saveAsDialog" => self.save_as_dialog("deckz"),
             "app.exportDialog" => self.dialog = Some(dialogs::Dialog::new("export")),
             "app.dialog" => {
                 let d = p.get("id").and_then(Value::as_str).ok_or("missing `id`")?;
                 self.dialog = Some(dialogs::Dialog::new(d));
             }
             "app.links" => {
-                use deckcraft_engine::links::*;
+                use deckz_engine::links::*;
                 return Ok(json!({"discord": DISCORD, "website": WEBSITE, "apps": APPS, "appPage": APP_PAGE, "github": GITHUB}));
             }
             _ => return Err(format!("unknown UI command `{id}`")),
@@ -586,7 +586,7 @@ impl SlideApp {
                 let r = match self.services.read.as_ref().map(|r| r(&path)) {
                     Some(Ok(bytes)) => {
                         let name = std::path::Path::new(&path).file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
-                        self.session.execute(cmd, &json!({"name": name, "data": deckcraft_engine::cmd::base64_encode(&bytes)}))
+                        self.session.execute(cmd, &json!({"name": name, "data": deckz_engine::cmd::base64_encode(&bytes)}))
                     }
                     _ => self.session.execute(cmd, &json!({"path": path})),
                 };
@@ -601,7 +601,7 @@ impl SlideApp {
 
     pub fn save_as_dialog(&mut self, format: &str) {
         let name = self.session.active().map(|d| d.title()).unwrap_or_else(|| "Presentation".into());
-        let ext = if format == "pptx" { "pptx" } else { "deckcraft" };
+        let ext = if format == "pptx" { "pptx" } else { "deckz" };
         let suggested = format!("{name}.{ext}");
         if let Some(pick) = self.services.pick_save.as_mut() {
             if let Some(path) = pick(&suggested) {
@@ -617,7 +617,7 @@ impl SlideApp {
         } else if let Some(dl) = self.services.download.as_mut()
             && let Some(d) = self.session.active()
         {
-            match deckcraft_engine::cmd::file::save_bytes(&d.doc, ext) {
+            match deckz_engine::cmd::file::save_bytes(&d.doc, ext) {
                 Ok(bytes) => dl(&suggested, &bytes),
                 Err(e) => self.set_status(e.to_string()),
             }
@@ -645,7 +645,7 @@ impl SlideApp {
                 Err(e) => self.set_status(e.to_string()),
             }
         } else {
-            self.save_as_dialog("deckcraft");
+            self.save_as_dialog("deckz");
         }
     }
 
@@ -663,7 +663,7 @@ impl SlideApp {
                 UiRequest::Message { text } => self.set_status(text),
                 UiRequest::PickFile { purpose } => {
                     if purpose == "saveAs" {
-                        self.save_as_dialog("deckcraft");
+                        self.save_as_dialog("deckz");
                     }
                 }
                 UiRequest::Media { action, shape, ms } => {
@@ -687,9 +687,9 @@ impl SlideApp {
     /// A dropped or picked file: presentations open, media is inserted.
     pub fn open_or_insert_bytes(&mut self, name: &str, bytes: &[u8]) {
         let lower = name.to_ascii_lowercase();
-        let data = deckcraft_engine::cmd::base64_encode(bytes);
-        let ct = deckcraft_engine::cmd::insert::content_type(name, bytes);
-        let cmd = if lower.ends_with(".deckcraft")
+        let data = deckz_engine::cmd::base64_encode(bytes);
+        let ct = deckz_engine::cmd::insert::content_type(name, bytes);
+        let cmd = if lower.ends_with(".deckz")
             || lower.ends_with(".slidecraft")
             || lower.ends_with(".pptx")
             || lower.ends_with(".potx")
@@ -705,7 +705,7 @@ impl SlideApp {
         } else if lower.ends_with(".txt") || lower.ends_with(".md") {
             "slide.fromOutline"
         } else {
-            self.set_status(format!("{name}: DeckCraft can't open this kind of file"));
+            self.set_status(format!("{name}: DeckZ can't open this kind of file"));
             return;
         };
         let p = if cmd == "slide.fromOutline" { json!({"text": String::from_utf8_lossy(bytes)}) } else { json!({"name": name, "data": data}) };
@@ -901,7 +901,7 @@ impl SlideApp {
                     let r = match img {
                         Some(png) => self
                             .session
-                            .execute("insert.picture", &json!({"name": "Pasted image.png", "data": deckcraft_engine::cmd::base64_encode(&png)})),
+                            .execute("insert.picture", &json!({"name": "Pasted image.png", "data": deckz_engine::cmd::base64_encode(&png)})),
                         None => self.session.execute("edit.paste", &json!({"text": text})),
                     };
                     if let Err(e) = r {
@@ -998,7 +998,7 @@ impl SlideApp {
         if self.show.is_none()
             && let Some(d) = self.session.active()
         {
-            let here: Vec<deckcraft_model::ShapeId> = if d.selection.target == deckcraft_engine::Target::Slides {
+            let here: Vec<deckz_model::ShapeId> = if d.selection.target == deckz_engine::Target::Slides {
                 media::slide_media(&d.doc, d.selection.slide).into_iter().map(|m| m.0).collect()
             } else {
                 vec![]
@@ -1145,12 +1145,12 @@ mod tests {
     #[test]
     fn opening_a_file_with_missing_fonts_shows_a_toast_once() {
         use egui_kittest::kittest::Queryable;
-        let mut p = deckcraft_model::Presentation::default();
+        let mut p = deckz_model::Presentation::default();
         let slide = std::sync::Arc::make_mut(&mut p.slides[0]);
-        let mut body = deckcraft_model::text::TextBody::from_text("Hello");
+        let mut body = deckz_model::text::TextBody::from_text("Hello");
         body.paragraphs[0].runs[0].props.font = Some("Qqq Nonexistent Sans".into());
         slide.shapes[0].text = Some(body);
-        let data = deckcraft_engine::cmd::base64_encode(&deckcraft_engine::cmd::file::save_bytes(&p, "pptx").unwrap());
+        let data = deckz_engine::cmd::base64_encode(&deckz_engine::cmd::file::save_bytes(&p, "pptx").unwrap());
         let mut harness = egui_kittest::Harness::builder().with_size(egui::vec2(1200.0, 800.0)).build_ui_state(
             |ui, app: &mut SlideApp| {
                 app.logic(ui.ctx());
@@ -1328,7 +1328,7 @@ mod tests {
 
     fn shape_x(app: &SlideApp, id: u64) -> f64 {
         let st = app.session.active().unwrap();
-        st.shape(deckcraft_model::ShapeId(id as u32)).and_then(|s| s.xfrm).unwrap().x
+        st.shape(deckz_model::ShapeId(id as u32)).and_then(|s| s.xfrm).unwrap().x
     }
 
     /// #270: PowerPoint's Normal view draws objects off the slide on the area around it, where
@@ -1357,7 +1357,7 @@ mod tests {
             let shape = px(centre);
             let board = px(slide.min + egui::vec2(1060.0 * k, 400.0 * k));
             let doc = &harness.state().session.active().unwrap().doc;
-            let accent = doc.masters[0].theme.colors.get(deckcraft_color::SchemeSlot::Accent1);
+            let accent = doc.masters[0].theme.colors.get(deckz_color::SchemeSlot::Accent1);
             let close = |a: u8, b: u8| (a as i32 - b as i32).abs() <= 4;
             assert!(close(shape[0], accent.r) && close(shape[1], accent.g) && close(shape[2], accent.b), "{shape:?} vs {accent:?}");
             assert_ne!(shape, board);

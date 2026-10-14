@@ -7,9 +7,9 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use deckcraft_geom::Rect;
-use deckcraft_model::{Master, Presentation, ShapeId, Slide};
-use deckcraft_render::{Image, Region, RenderOpts};
+use deckz_geom::Rect;
+use deckz_model::{Master, Presentation, ShapeId, Slide};
+use deckz_render::{Image, Region, RenderOpts};
 use egui::{ColorImage, TextureHandle, TextureOptions};
 
 #[derive(Clone, PartialEq)]
@@ -107,7 +107,7 @@ impl Textures {
         let estimate = match &self.estimate {
             Some((s, m, r)) if Arc::ptr_eq(s, &slide) && same(m, &master) => *r,
             _ => {
-                let r = deckcraft_render::slide_extent(p, index);
+                let r = deckz_render::slide_extent(p, index);
                 self.estimate = Some((slide.clone(), master.clone(), r));
                 r
             }
@@ -116,7 +116,7 @@ impl Textures {
             Some((i, d)) if i == index => estimate.union(d),
             _ => estimate,
         };
-        let want = deckcraft_render::pasteboard_region(size, scale, reach, visible);
+        let want = deckz_render::pasteboard_region(size, scale, reach, visible);
         let key = Key {
             slide: Arc::as_ptr(&slide) as usize,
             master: master.as_ref().map(|m| Arc::as_ptr(m) as usize).unwrap_or(0),
@@ -134,7 +134,7 @@ impl Textures {
         let render = |region: Region| {
             let opts =
                 RenderOpts { scale, edit, gif_times, threads: threads(), offset: region.offset(), size: Some(region.size()), ..Default::default() };
-            deckcraft_render::render_slide_drawn(p, index, &opts)
+            deckz_render::render_slide_drawn(p, index, &opts)
         };
         let (mut img, drawn) = render(want);
         self.canvas_renders += 1;
@@ -142,7 +142,7 @@ impl Textures {
         // Text spilling out of its box can reach further than the boxes said. Once drawn, the
         // region it calls for is known (and is next frame's key): render again only if it shows
         // more than this render covered.
-        let key = Key { want: deckcraft_render::pasteboard_region(size, scale, estimate.union(drawn), visible), ..key };
+        let key = Key { want: deckz_render::pasteboard_region(size, scale, estimate.union(drawn), visible), ..key };
         if !region.contains(&key.want) {
             region = key.want;
             img = render(region).0;
@@ -198,7 +198,7 @@ impl Textures {
         }
         *budget -= 1;
         let scale = width_px as f64 / p.slide_size.width.max(1.0);
-        let img = deckcraft_render::render_slide(p, index, &RenderOpts { scale, size: Some((width_px, h)), threads: 0, ..Default::default() });
+        let img = deckz_render::render_slide(p, index, &RenderOpts { scale, size: Some((width_px, h)), threads: 0, ..Default::default() });
         let tex = ctx.load_texture(format!("thumb-{index}"), to_color_image(&img, false), TextureOptions::LINEAR);
         // Drop the old entry for this slide address; entries for slides that no longer exist age out.
         let region = key.want;

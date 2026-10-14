@@ -1,10 +1,10 @@
-# DeckCraft roadmap
+# DeckZ roadmap
 
 **Stage: alpha** · next: beta, ~20 points and ~120–210 h away
 
 > **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-10 · **Change:** minor (hours to ~95% per audience added; ready 56% → 55%; stage stays alpha; previous: major, full re-measure against PowerPoint for Mac 16.113.4; restructured to the craftrules progress-docs standard) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
 
-DeckCraft aims at full PowerPoint parity, and to be better: faster, open (a documented zip+JSON
+DeckZ aims at full PowerPoint parity, and to be better: faster, open (a documented zip+JSON
 format plus PPTX), scriptable by agents (CLI, JSON control channel, MCP), and available everywhere
 (macOS, Windows, Linux, BSD and the web). This page is the summary; the detail is in
 [docs/target-app-parity.md](docs/target-app-parity.md) and the work list in
@@ -120,15 +120,15 @@ Ranked; detail and the full beta plan in [docs/roadmap.md](docs/roadmap.md).
 
 ## Agents: CLI and MCP
 
-Every command is reachable from `deckcraft-cli` (`run`, `describe`, `commands`, `app` for the running
-window, `render`, `convert`), from MCP (`deckcraft-cli mcp`, optionally `--connect PORT`), and from the
-app's JSON control channel (`deckcraft --control PORT`).
+Every command is reachable from `deckz-cli` (`run`, `describe`, `commands`, `app` for the running
+window, `render`, `convert`), from MCP (`deckz-cli mcp`, optionally `--connect PORT`), and from the
+app's JSON control channel (`deckz --control PORT`).
 
 ## Progress log
 
 | Date | What landed |
 |---|---|
-| 2026-10-13 | Slide transitions like PowerPoint: every transition and option measured frame by frame against PowerPoint's video export and retuned (curves, directions, soft edges, 3-D perspective, contents moving over backgrounds); PowerPoint's own XML elements and defaults read and written (diagonal Wipe, Zoom, Shape In/Out, Glitter Hexagons, Shred In/Out, Page Curl Single); `deckcraft-cli render-transition` renders frames headless |
+| 2026-10-13 | Slide transitions like PowerPoint: every transition and option measured frame by frame against PowerPoint's video export and retuned (curves, directions, soft edges, 3-D perspective, contents moving over backgrounds); PowerPoint's own XML elements and defaults read and written (diagonal Wipe, Zoom, Shape In/Out, Glitter Hexagons, Shred In/Out, Page Curl Single); `deckz-cli render-transition` renders frames headless |
 | 2026-10-13 | Wild text cases measured against PowerPoint (102 synthetic slides): bidi by run language, East Asian vertical text upright, mongolianVert/wordArtVert/wordArtVertRtl, underline styles and strikethrough at the font's metrics, centre/right/decimal tabs, East Asian, Thai, Hindi, Arabic and Hebrew numbering, small caps, all-caps "ß", transparent text, soft hyphens, kinsoku, rtlCol and just/dist anchoring, emoji presentation, fallback faces that no longer move the baseline |
 | 2026-10-13 | Render matches PowerPoint more closely on wild shape, picture and table cases: even-odd custom paths, dashes and caps, arrowheads, radial and path gradients, tile rects, rotWithShape, gradient lines, shadows cast by what is drawn (group and perspective too), group fill, picture borders, tiles, reflection, recolour (biLevel, alphaInv, brightness/contrast), table borders and grid default, 20+ preset shapes by their ECMA formulas, default miter joins, and approximate 3-D bevels, cameras and face lighting |
 | 2026-10-12 | Objects off the slide show and can be selected and moved around it in Normal view, as in PowerPoint; the show, exports and thumbnails still clip to the slide (#270) |
@@ -142,8 +142,8 @@ app's JSON control channel (`deckcraft --control PORT`).
 | 2026-10-10 | Progress docs restructured to the craftrules standard; full re-measure (breadth 79%, ready ~55%, mainstream ~53%, essentials ~62%, alpha). Landed: Animation Painter (#54), Morph geometry outlines (#27), animated GIF playback (#39), hyperlink colour and following links in the show (#37, #45), date fields in their own format (#36), flipped shapes keep readable text (#35), show transition fix (#46), start screen from the Home button (#49), MCP export lists PDF (#65), OmaStore manifest (#57) |
 | 2026-10-09 | v0.4.0 released. UAX #9 bidi and Arabic shaping (#4), Morph with Words and Characters (#5), tables grow to fit and PDF cell text (#14), rotating log file (#7), DX12 default on Windows (#16), H.264/HEVC overflow hardening (#2), PPTX sniffing anywhere in the zip (#19) |
 | 2026-10-08 | v0.2.0 and v0.3.0 released: Windows arm64, Flatpak aarch64, AppImage zsync updates, branded DMG |
-| 2026-10-07 | v0.1.0 released, signed and notarized; About window with contributor credits (#3); PrintCraft renamed PdfCraft |
-| 2026-10-06 | Renamed SlideCraft to DeckCraft. PPTX import/export, PDF export, media playback with pure-Rust codecs, connectors with glue, freeform tools, merge shapes, AutoRecover, gradient editor, web build, release CI, parity catalogue |
+| 2026-10-07 | v0.1.0 released, signed and notarized; About window with contributor credits (#3); PrintCraft renamed PdfZ |
+| 2026-10-06 | Renamed SlideCraft to DeckZ. PPTX import/export, PDF export, media playback with pure-Rust codecs, connectors with glue, freeform tools, merge shapes, AutoRecover, gradient editor, web build, release CI, parity catalogue |
 | 2026-10-05 | M0: workspace, model, geometry, fonts, text, renderer, engine, MCP, CLI, PowerPoint-style egui UI, slide show engine |
 
 ## Revision history

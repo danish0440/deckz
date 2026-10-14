@@ -1,4 +1,4 @@
-//! The DeckCraft renderer: draws slides, layouts and masters with `vello_cpu`.
+//! The DeckZ renderer: draws slides, layouts and masters with `vello_cpu`.
 //!
 //! One code path serves the editor canvas, thumbnails, image/PDF-raster export and the slide show:
 //! [`render_slide`] draws the background, the master and layout graphics, then the slide's shapes
@@ -31,20 +31,20 @@ mod warp;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use deckcraft_color::Rgba;
-use deckcraft_fonts::FontDb;
-use deckcraft_geom::preset::{self, FillMode, Geometry, SubPath};
-use deckcraft_model::resolve::{self, Ctx};
-use deckcraft_model::style::{Effects, Fill, Line};
-use deckcraft_model::text::TextBody;
-use deckcraft_model::{Geom, PhType, Presentation, Shape, ShapeId, ShapeKind, Slide};
-use deckcraft_text::datetime::{self, DateTime};
-use deckcraft_text::{Fields, Opts};
+use deckz_color::Rgba;
+use deckz_fonts::FontDb;
+use deckz_geom::preset::{self, FillMode, Geometry, SubPath};
+use deckz_model::resolve::{self, Ctx};
+use deckz_model::style::{Effects, Fill, Line};
+use deckz_model::text::TextBody;
+use deckz_model::{Geom, PhType, Presentation, Shape, ShapeId, ShapeKind, Slide};
+use deckz_text::datetime::{self, DateTime};
+use deckz_text::{Fields, Opts};
 use kurbo::{Affine, BezPath, PathEl, Point, Rect, Shape as _, Vec2};
 use vello_common::filter_effects::{EdgeMode, Filter, FilterPrimitive};
 use vello_cpu::{RenderContext, Resources, peniko};
 
-pub use deckcraft_anim::{transition_frame, transition_layers, uses_slide_parts};
+pub use deckz_anim::{transition_frame, transition_layers, uses_slide_parts};
 pub use extent::{Region, TILE, layout_extent, pasteboard_region, slide_extent};
 pub use images::{decode as decode_image, gif_frame};
 pub use morph_path::PathMorph;
@@ -266,7 +266,7 @@ pub fn needs_filters(pres: &Presentation, slide: &Slide) -> bool {
     let Some(rctx) = Ctx::for_slide(pres, slide) else { return false };
     let mut any = false;
     let mut check = |shapes: &[Shape]| {
-        deckcraft_model::walk(shapes, &mut |s, _| {
+        deckz_model::walk(shapes, &mut |s, _| {
             if any {
                 return;
             }
@@ -287,7 +287,7 @@ pub fn needs_filters(pres: &Presentation, slide: &Slide) -> bool {
 /// Does the shape's text have a shadow or glow (on a run, in its list style, or in the master's
 /// text styles it inherits)? Such text is blurred, which needs filters.
 fn text_has_effects(rctx: &Ctx, s: &Shape) -> bool {
-    use deckcraft_model::text::{ListStyle, RunProps};
+    use deckz_model::text::{ListStyle, RunProps};
     let fx = |r: &RunProps| r.shadow.as_ref().is_some_and(|s| !s.inner) || r.glow.as_ref().is_some_and(|g| g.radius > 0.0);
     let styled = |l: &ListStyle| l.levels.iter().flatten().any(|lv| fx(&lv.run));
     let Some(t) = &s.text else { return false };
@@ -794,7 +794,7 @@ impl Renderer {
         match &s.kind {
             ShapeKind::Group { children, child } => {
                 let ch = Rect::new(child.x, child.y, child.x + child.w, child.y + child.h);
-                let gm = parent * deckcraft_geom::group_child_affine(&x, ch);
+                let gm = parent * deckz_geom::group_child_affine(&x, ch);
                 // A group's own fill (a group filled with its parent's passes that on).
                 let own = match &s.fill {
                     Some(Fill::Group) | None => self.group_fill.clone(),
@@ -888,7 +888,7 @@ impl Renderer {
             Some(pm) => morph_path::geometry(pm, s, w, h),
             None => (shape_geometry(s, w, h), Vec::new()),
         };
-        let fade = |i: usize| fades.get(i).copied().unwrap_or(deckcraft_geom::morph::Fade { fill: 1.0, stroke: 1.0 });
+        let fade = |i: usize| fades.get(i).copied().unwrap_or(deckz_geom::morph::Fade { fill: 1.0, stroke: 1.0 });
         let (fill, fill_ph) = resolve::fill(rctx, s);
         let (line, line_ph) = resolve::line(rctx, s);
         let (effects, fx_ph) = resolve::effects(rctx, s);
@@ -898,7 +898,7 @@ impl Renderer {
         let outline = geo.outline();
         // Placeholders in the editor: dashed outline and prompt, nothing else when empty.
         let empty_ph = s.ph.is_some() && s.text.as_ref().is_none_or(TextBody::is_empty) && !is_pic && !matches!(s.kind, ShapeKind::Media(_));
-        let fill = if let Some(t) = st.tint { Some(Fill::solid(deckcraft_model::ColorRef::rgb(t))) } else { fill };
+        let fill = if let Some(t) = st.tint { Some(Fill::solid(deckz_model::ColorRef::rgb(t))) } else { fill };
         // Effects below the shape.
         if let Some(e) = &effects {
             // A picture (or picture fill) casts its shadow from its pixels, not its frame.
@@ -936,18 +936,18 @@ impl Renderer {
                 paint::picture(ctx, f.pres, &paint::resolved(rctx, pf, None), bounds, m, t);
                 ctx.pop_layer();
             }
-            // An object DeckCraft doesn't model (an embedded OLE object, an unknown graphic): its
+            // An object DeckZ doesn't model (an embedded OLE object, an unknown graphic): its
             // preview picture, stretched over the frame, as PowerPoint draws it.
             ShapeKind::Opaque { preview: Some(media), .. } => {
                 ctx.set_transform(m);
-                let pf = deckcraft_model::style::PictureFill { media: *media, ..Default::default() };
+                let pf = deckz_model::style::PictureFill { media: *media, ..Default::default() };
                 paint::picture(ctx, f.pres, &pf, Rect::new(0.0, 0.0, w, h), m, None);
             }
             ShapeKind::Media(mc) => {
                 ctx.set_transform(m);
                 let bounds = Rect::new(0.0, 0.0, w, h);
                 if let Some(p) = mc.poster {
-                    let pf = deckcraft_model::style::PictureFill { media: p, ..Default::default() };
+                    let pf = deckz_model::style::PictureFill { media: p, ..Default::default() };
                     paint::picture(ctx, f.pres, &pf, bounds, m, None);
                 } else if mc.video {
                     ctx.set_paint(peniko::Color::from_rgba8(20, 20, 24, 255));
@@ -1013,7 +1013,7 @@ impl Renderer {
         // Some presets' outlines default to sharp corners (PowerPoint's own per-shape default).
         let line = match (&s.geom, line.join) {
             (Geom::Preset { name, .. }, None) if preset::mitred_by_default(name) => {
-                Line { join: Some(deckcraft_model::style::LineJoin::Miter), ..line }
+                Line { join: Some(deckz_model::style::LineJoin::Miter), ..line }
             }
             _ => line,
         };
@@ -1058,7 +1058,7 @@ impl Renderer {
                     ctx.set_transform(Affine::IDENTITY);
                     ctx.push_layer(None, None, Some(c.a as f32 / 255.0), None, None);
                     std::borrow::Cow::Owned(Line {
-                        fill: Some(Fill::solid(deckcraft_model::style::ColorRef::rgb(c.with_alpha(255)))),
+                        fill: Some(Fill::solid(deckz_model::style::ColorRef::rgb(c.with_alpha(255)))),
                         ..line.clone()
                     })
                 }
@@ -1167,7 +1167,7 @@ impl Renderer {
             };
             let tr = geo.text_rect;
             if !body.is_empty() {
-                let l = deckcraft_text::layout(rctx, s, body, &Opts { rect: tr, fields: &f.fields, prompt_color: None, no_shrink: false });
+                let l = deckz_text::layout(rctx, s, body, &Opts { rect: tr, fields: &f.fields, prompt_color: None, no_shrink: false });
                 let tm = text_transform(m, tr, l.rotation);
                 for b in l.lines.iter().filter_map(line_bounds) {
                     // Glyphs reach a little past their carets and line box (italics, swashes).
@@ -1210,7 +1210,7 @@ impl Renderer {
         fill: &Option<Fill>,
         fill_alpha: Option<f64>,
         outline: Option<Caster>,
-        content: Option<&deckcraft_model::style::PictureFill>,
+        content: Option<&deckz_model::style::PictureFill>,
         m: Affine,
         w: f64,
         h: f64,
@@ -1267,7 +1267,7 @@ impl Renderer {
             }
             // … and the outline (a picture's border too).
             if let Some(o) = &outline {
-                let cast = Line { fill: Some(Fill::solid(deckcraft_model::style::ColorRef::rgb(c.with_alpha(255)))), ..o.line.as_ref().clone() };
+                let cast = Line { fill: Some(Fill::solid(deckz_model::style::ColorRef::rgb(c.with_alpha(255)))), ..o.line.as_ref().clone() };
                 let lw = o.line.width.unwrap_or(0.75).max(0.0);
                 for sp in geo.paths.iter().filter(|sp| sp.stroke) {
                     let mut path = sp.path.clone();
@@ -1333,12 +1333,12 @@ fn border_outside(is_pic: bool, effects: Option<&Effects>) -> bool {
 /// the outline is the border, with dashes kept their length. `None` for compound lines, whose
 /// bands would not survive the doubling (they stay centred on the outline).
 fn outside_line(line: &Line, lw: f64) -> Option<Line> {
-    if line.compound.is_some_and(|c| c != deckcraft_model::style::Compound::Single) {
+    if line.compound.is_some_and(|c| c != deckz_model::style::Compound::Single) {
         return None;
     }
     let dash = line.dash.as_ref().map(|d| {
         let p = d.pattern();
-        deckcraft_model::style::Dash::Custom {
+        deckz_model::style::Dash::Custom {
             pattern: p.chunks(2).map(|c| (c.first().copied().unwrap_or(0.0) / 2.0, c.get(1).copied().unwrap_or(0.0) / 2.0)).collect(),
         }
     });
@@ -1373,7 +1373,7 @@ fn fill_opacity(rctx: &Ctx, fill: &Option<Fill>, ph: Option<Rgba>) -> Option<f64
 /// top-left corner…), as PowerPoint applies them: skewed, then scaled. A perspective shadow
 /// (`algn="b"`, `sy` 23%, `kx` -20°) so lies flat along the shape's bottom edge, not around its
 /// middle.
-fn shadow_local(sh: &deckcraft_model::style::Shadow, w: f64, h: f64) -> Affine {
+fn shadow_local(sh: &deckz_model::style::Shadow, w: f64, h: f64) -> Affine {
     let (ax, ay) = match sh.align.as_str() {
         "tl" => (0.0, 0.0),
         "t" => (0.5, 0.0),
@@ -1420,7 +1420,7 @@ pub(crate) fn stroke(
     lw: f64,
     alpha: f64,
 ) {
-    use deckcraft_model::style::{LineCap, LineJoin};
+    use deckz_model::style::{LineCap, LineJoin};
     let cap = match line.cap.unwrap_or_default() {
         LineCap::Flat => kurbo::Cap::Butt,
         LineCap::Round => kurbo::Cap::Round,
@@ -1460,7 +1460,7 @@ pub(crate) fn stroke(
     }
     // Compound lines: each band stroked along the path moved to its place across the width.
     let compound = line.compound.unwrap_or_default();
-    if compound != deckcraft_model::style::Compound::Single && lw * scale_of(m) >= 1.5 {
+    if compound != deckz_model::style::Compound::Single && lw * scale_of(m) >= 1.5 {
         let tolerance = 0.1 / scale_of(m).max(1e-6);
         for &(a, b) in compound::bands(compound) {
             let d = (-0.5 + (a + b) / 2.0) * lw;
@@ -1559,7 +1559,7 @@ fn square_dash_ends(path: &BezPath, pattern: &[f64], width: f64) -> BezPath {
 /// A gradient line's paint: laid out, as PowerPoint lays it, over the box the stroke covers (the
 /// path's bounds grown by half the line width), so a horizontal line's vertical gradient runs
 /// across its width.
-fn line_gradient(rctx: &Ctx, g: &deckcraft_model::style::Gradient, ph: Option<Rgba>, path: &BezPath, lw: f64, alpha: f64) -> peniko::Gradient {
+fn line_gradient(rctx: &Ctx, g: &deckz_model::style::Gradient, ph: Option<Rgba>, path: &BezPath, lw: f64, alpha: f64) -> peniko::Gradient {
     let bounds = path.bounding_box().inflate(lw / 2.0, lw / 2.0);
     let bounds = paint::tile_box(bounds, g.tile);
     let stops: Vec<(f64, Rgba)> = g.stops.iter().map(|s| (s.pos, rctx.color(&s.color, ph))).collect();
@@ -1612,7 +1612,7 @@ fn end_points(path: &BezPath) -> Option<((Point, Point), (Point, Point))> {
 
 /// An arrowhead's width and length for a line `lw` wide. PowerPoint sizes them in multiples of
 /// the line width (small 2, medium 3, large 5), but never smaller than for a 2 pt line.
-fn head_size(e: &deckcraft_model::style::LineEnd, lw: f64) -> (f64, f64) {
+fn head_size(e: &deckz_model::style::LineEnd, lw: f64) -> (f64, f64) {
     let sz = |s: &str| match s {
         "sm" => 2.0,
         "lg" => 5.0,
@@ -1634,8 +1634,8 @@ fn open_arrow_setback(wl: f64, ll: f64, lw: f64) -> f64 {
 /// corners, and to where an open arrow's legs meet. Ovals and diamonds sit on the end itself.
 fn head_trims(line: &Line, lw: f64) -> (f64, f64) {
     // A square cap reaches half a width past the line's end: leave that off too.
-    let cap = if line.cap == Some(deckcraft_model::style::LineCap::Square) { lw / 2.0 } else { 0.0 };
-    let trim = |e: &Option<deckcraft_model::style::LineEnd>| {
+    let cap = if line.cap == Some(deckz_model::style::LineCap::Square) { lw / 2.0 } else { 0.0 };
+    let trim = |e: &Option<deckz_model::style::LineEnd>| {
         let Some(e) = e else { return 0.0 };
         let (wl, ll) = head_size(e, lw);
         match e.kind.as_str() {
@@ -1832,10 +1832,10 @@ fn prompt_body(rctx: &Ctx, s: &Shape, kind: PhType) -> TextBody {
     }
     let mut t = TextBody::from_text(txt);
     if matches!(kind, PhType::Picture | PhType::Chart | PhType::Table | PhType::Media | PhType::Diagram | PhType::ClipArt) {
-        t.body.anchor = Some(deckcraft_model::text::Anchor::Bottom);
+        t.body.anchor = Some(deckz_model::text::Anchor::Bottom);
         if let Some(p) = t.paragraphs.first_mut() {
-            p.props.align = Some(deckcraft_model::text::Align::Center);
-            p.props.bullet = Some(deckcraft_model::text::Bullet::None);
+            p.props.align = Some(deckz_model::text::Align::Center);
+            p.props.bullet = Some(deckz_model::text::Bullet::None);
             p.props.margin_left = Some(0.0);
             p.props.indent = Some(0.0);
             for r in &mut p.runs {
@@ -1850,7 +1850,7 @@ thread_local! {
     static GLYPH_CACHE: std::cell::RefCell<HashMap<(u32, u32), Arc<BezPath>>> = std::cell::RefCell::new(HashMap::new());
 }
 
-fn glyph(face: &deckcraft_fonts::FontFace, gid: u32) -> Arc<BezPath> {
+fn glyph(face: &deckz_fonts::FontFace, gid: u32) -> Arc<BezPath> {
     let key = (face.id(), gid);
     if let Some(p) = GLYPH_CACHE.with(|c| c.borrow().get(&key).cloned()) {
         return p;
@@ -1868,7 +1868,7 @@ fn glyph(face: &deckcraft_fonts::FontFace, gid: u32) -> Arc<BezPath> {
 
 /// Draw a text body into shape space `m` within the text rect.
 pub fn draw_text(ctx: &mut RenderContext, rctx: &Ctx, s: &Shape, body: &TextBody, tr: Rect, m: Affine, fields: &dyn Fields, prompt: Option<Rgba>) {
-    let l = deckcraft_text::layout(rctx, s, body, &Opts { rect: tr, fields, prompt_color: prompt, no_shrink: false });
+    let l = deckz_text::layout(rctx, s, body, &Opts { rect: tr, fields, prompt_color: prompt, no_shrink: false });
     draw_layout(ctx, &l, tr, m);
 }
 
@@ -1891,23 +1891,23 @@ pub fn text_transform(m: Affine, tr: Rect, rotation: f64) -> Affine {
     t
 }
 
-/// The WordArt warp of `s`'s text over its text rectangle `tr`, if it has one DeckCraft draws.
-pub fn text_warp(rctx: &Ctx, s: &Shape, tr: Rect) -> Option<deckcraft_geom::warp::Warp> {
+/// The WordArt warp of `s`'s text over its text rectangle `tr`, if it has one DeckZ draws.
+pub fn text_warp(rctx: &Ctx, s: &Shape, tr: Rect) -> Option<deckz_geom::warp::Warp> {
     let bp = resolve::body(rctx, s);
     let name = bp.warp.as_deref()?;
-    deckcraft_geom::warp::warp(name, &bp.warp_adj, tr)
+    deckz_geom::warp::warp(name, &bp.warp_adj, tr)
 }
 
 /// Draw an already laid-out text block.
-pub fn draw_layout(ctx: &mut RenderContext, l: &deckcraft_text::TextLayout, tr: Rect, m: Affine) {
+pub fn draw_layout(ctx: &mut RenderContext, l: &deckz_text::TextLayout, tr: Rect, m: Affine) {
     draw_layout_with(ctx, l, tr, m, &[]);
 }
 
 /// Draw a laid-out text block with per-paragraph animation states.
-pub fn draw_layout_with(ctx: &mut RenderContext, l: &deckcraft_text::TextLayout, tr: Rect, m: Affine, paras: &[(usize, ParaState)]) {
+pub fn draw_layout_with(ctx: &mut RenderContext, l: &deckz_text::TextLayout, tr: Rect, m: Affine, paras: &[(usize, ParaState)]) {
     let para = |i: usize| paras.iter().find(|(p, _)| *p == i).map(|(_, s)| *s).unwrap_or_default();
     let m = text_transform(m, tr, l.rotation);
-    let deco = |ctx: &mut RenderContext, d: &deckcraft_text::Deco| {
+    let deco = |ctx: &mut RenderContext, d: &deckz_text::Deco| {
         let ps = para(d.para);
         if !ps.visible || ps.opacity <= 0.001 {
             return;
@@ -1948,7 +1948,7 @@ pub fn draw_layout_with(ctx: &mut RenderContext, l: &deckcraft_text::TextLayout,
             };
             let li = line_at(l, run.para, *y);
             if !grads.iter().any(|(i, _)| *i == li) {
-                let scheme = deckcraft_color::ColorScheme { name: String::new(), colors: [Rgba::BLACK; 12] };
+                let scheme = deckz_color::ColorScheme { name: String::new(), colors: [Rgba::BLACK; 12] };
                 let stops = g.stops.iter().map(|s| (s.pos, s.color.resolve(&scheme, None))).collect();
                 let bounds = l.lines.get(li).and_then(line_bounds).unwrap_or(tr);
                 grads.push((li, paint::gradient(&g.shape, stops, bounds, run.alpha * ps.opacity)));
@@ -1964,7 +1964,7 @@ pub fn draw_layout_with(ctx: &mut RenderContext, l: &deckcraft_text::TextLayout,
 
 /// Where glyph `gid` of `run` with its pen at (`x`, `y`) is drawn, in text space: there, turned a
 /// quarter turn back about its em box's centre when it stands upright in vertical text.
-pub(crate) fn glyph_place(run: &deckcraft_text::GlyphRun, gid: u32, x: f64, y: f64) -> Affine {
+pub(crate) fn glyph_place(run: &deckz_text::GlyphRun, gid: u32, x: f64, y: f64) -> Affine {
     let at = Affine::translate((x, y));
     match run.upright_centre(gid, x, y) {
         Some((cx, cy)) => Affine::translate((cx, cy)) * Affine::rotate(-std::f64::consts::FRAC_PI_2) * Affine::translate((-cx, -cy)) * at,
@@ -1974,7 +1974,7 @@ pub(crate) fn glyph_place(run: &deckcraft_text::GlyphRun, gid: u32, x: f64, y: f
 
 /// Fill an underline, strikethrough or highlight with the current paint and transform: its box,
 /// its dashes, or its zigzag stroked.
-pub(crate) fn fill_deco(ctx: &mut RenderContext, d: &deckcraft_text::Deco) {
+pub(crate) fn fill_deco(ctx: &mut RenderContext, d: &deckz_text::Deco) {
     if let Some((pts, w)) = d.wave() {
         let mut path = BezPath::new();
         for (i, p) in pts.iter().enumerate() {
@@ -1994,7 +1994,7 @@ pub(crate) fn fill_deco(ctx: &mut RenderContext, d: &deckcraft_text::Deco) {
 }
 
 /// The line of paragraph `para` holding a glyph on baseline `y` (the nearest baseline).
-fn line_at(l: &deckcraft_text::TextLayout, para: usize, y: f64) -> usize {
+fn line_at(l: &deckz_text::TextLayout, para: usize, y: f64) -> usize {
     l.lines
         .iter()
         .enumerate()
@@ -2005,7 +2005,7 @@ fn line_at(l: &deckcraft_text::TextLayout, para: usize, y: f64) -> usize {
 }
 
 /// The box a line's text covers: its top and bottom, its first and last caret.
-fn line_bounds(li: &deckcraft_text::LineInfo) -> Option<Rect> {
+fn line_bounds(li: &deckz_text::LineInfo) -> Option<Rect> {
     let (x0, x1) = li.caret_x.iter().fold((f64::INFINITY, f64::NEG_INFINITY), |(a, b), x| (a.min(*x), b.max(*x)));
     let r = Rect::new(x0, li.top, x1, li.bottom);
     (r.is_finite() && r.width() > 0.0 && r.height() > 0.0).then_some(r)
@@ -2018,7 +2018,7 @@ enum TextEffect {
 }
 
 /// Draw `run`'s shadow or glow (if it has one) under its glyphs, placed by `m`.
-fn text_effect(ctx: &mut RenderContext, run: &deckcraft_text::GlyphRun, which: TextEffect, m: Affine, opacity: f64) {
+fn text_effect(ctx: &mut RenderContext, run: &deckz_text::GlyphRun, which: TextEffect, m: Affine, opacity: f64) {
     let Some(fx) = run.effects else { return };
     let k = run.size / run.face.upem.max(1.0);
     let skew = if run.fake_italic { Affine::new([1.0, 0.0, -0.2, 1.0, 0.0, 0.0]) } else { Affine::IDENTITY };
@@ -2055,7 +2055,7 @@ fn text_effect(ctx: &mut RenderContext, run: &deckcraft_text::GlyphRun, which: T
 }
 
 /// Draw glyph `gid` of `run` with its origin (on the baseline) mapped by `at`, faded by `opacity`.
-pub(crate) fn draw_glyph(ctx: &mut RenderContext, run: &deckcraft_text::GlyphRun, gid: u32, at: Affine, opacity: f64) {
+pub(crate) fn draw_glyph(ctx: &mut RenderContext, run: &deckz_text::GlyphRun, gid: u32, at: Affine, opacity: f64) {
     draw_glyph_with(ctx, run, gid, at, opacity, None);
 }
 
@@ -2063,7 +2063,7 @@ pub(crate) fn draw_glyph(ctx: &mut RenderContext, run: &deckcraft_text::GlyphRun
 /// the glyph's origin to that space) instead of the run's colour.
 fn draw_glyph_with(
     ctx: &mut RenderContext,
-    run: &deckcraft_text::GlyphRun,
+    run: &deckz_text::GlyphRun,
     gid: u32,
     at: Affine,
     opacity: f64,
@@ -2139,15 +2139,15 @@ mod mt_tests {
     /// Regression: multithreaded rendering of a slide with shadows panicked inside vello_cpu.
     #[test]
     fn effects_render_with_threads_requested() {
-        let mut s = deckcraft_model::Presentation::default();
+        let mut s = deckz_model::Presentation::default();
         let sl = std::sync::Arc::make_mut(&mut s.slides[0]);
-        let mut sh = deckcraft_model::Shape {
+        let mut sh = deckz_model::Shape {
             id: ShapeId(900),
-            xfrm: Some(deckcraft_geom::Xfrm::new(10.0, 10.0, 100.0, 100.0)),
-            style: Some(deckcraft_model::ShapeStyle::accent(deckcraft_color::SchemeSlot::Accent1)),
+            xfrm: Some(deckz_geom::Xfrm::new(10.0, 10.0, 100.0, 100.0)),
+            style: Some(deckz_model::ShapeStyle::accent(deckz_color::SchemeSlot::Accent1)),
             ..Default::default()
         };
-        sh.effects = Some(deckcraft_model::Effects { soft_edge: Some(5.0), ..Default::default() });
+        sh.effects = Some(deckz_model::Effects { soft_edge: Some(5.0), ..Default::default() });
         sl.shapes.push(sh);
         assert!(needs_filters(&s, &s.slides[0]));
         let img = RENDERER.with(|r| r.borrow_mut().slide(&s, &s.slides[0], 0, &RenderOpts { scale: 0.5, threads: 4, ..Default::default() }));

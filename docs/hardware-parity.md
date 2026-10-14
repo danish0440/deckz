@@ -2,13 +2,13 @@
 
 > **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-12 · **Change:** minor (IME input, #101; previous: major, created from the renderer, media and windowing code) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365); PowerPoint for Windows where noted
 
-What hardware PowerPoint uses and what DeckCraft uses, per platform. Dimension score: **~40%
+What hardware PowerPoint uses and what DeckZ uses, per platform. Dimension score: **~40%
 ready** (estimated), **25–45 h** to parity. Performance (unmeasured, ~55%) is tracked here too
 because it mostly follows from hardware use.
 
 ## Graphics and rendering
 
-| Feature | PowerPoint | DeckCraft macOS | DeckCraft Windows | DeckCraft Linux/BSD | DeckCraft web |
+| Feature | PowerPoint | DeckZ macOS | DeckZ Windows | DeckZ Linux/BSD | DeckZ web |
 |---|---|---|---|---|---|
 | Window compositing on the GPU | Metal / DirectX | wgpu (Metal) | wgpu, DX12 only by default (#16) | wgpu (Vulkan, GL) | WebGPU, WebGL2 fallback |
 | Slide rasterization | GPU | **CPU** (`vello_cpu`) | CPU | CPU | CPU (wasm) |
@@ -20,7 +20,7 @@ because it mostly follows from hardware use.
 
 ## Media
 
-| Feature | PowerPoint | DeckCraft |
+| Feature | PowerPoint | DeckZ |
 |---|---|---|
 | Video decode | Hardware (AVFoundation/VideoToolbox, Media Foundation) | Software only: pure-Rust H.264, HEVC, VP9, AV1 (`crates/h264`, `hevc`, `vp9`, `av1`) |
 | 4K video in the show | smooth on hardware decode | unmeasured; likely CPU-bound |
@@ -31,7 +31,7 @@ because it mostly follows from hardware use.
 
 ## Displays
 
-| Feature | PowerPoint | DeckCraft |
+| Feature | PowerPoint | DeckZ |
 |---|---|---|
 | Detect the projector, show on it, presenter view on the laptop | yes | **no**: the show goes full screen on the current display; presenter view opens as a normal window (egui viewport) |
 | Swap displays, choose the monitor in Set Up Show | yes | no |
@@ -39,7 +39,7 @@ because it mostly follows from hardware use.
 
 ## Input devices
 
-| Feature | PowerPoint | DeckCraft |
+| Feature | PowerPoint | DeckZ |
 |---|---|---|
 | Keyboard and presentation clickers (Page Up/Down, B, Esc) | yes | yes |
 | Mouse and trackpad scroll | yes | yes |
@@ -61,7 +61,7 @@ outlines every frame (#67, fix open), and the decoders run in software.
 |---|---|
 | Presenter view on the right display, choose monitor, swap | 3–5 |
 | GPU slide rasterization (vello's GPU/hybrid path) | 12–20 |
-| Hardware video decode (copy FilmCraft's VideoToolbox / Media Foundation / VA-API paths) | 8–14 |
+| Hardware video decode (copy FilmZ's VideoToolbox / Media Foundation / VA-API paths) | 8–14 |
 | Windows GPU startup robustness: backend probing, software fallback (#40, #59) | 4–8 (counted under Stability) |
 | Pen pressure, pinch zoom | 3–6 |
 | Benchmark suite (`cargo xtask bench`) and a first performance pass | 6–12 (Performance dimension) |

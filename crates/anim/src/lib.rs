@@ -1,4 +1,4 @@
-//! Slide show timing for DeckCraft.
+//! Slide show timing for DeckZ.
 //!
 //! - [`Timeline`]: a slide's animation list grouped into click steps, with per-shape (and
 //!   per-paragraph) [`AnimState`] at any point of the show.
@@ -28,7 +28,7 @@ mod tests;
 #[cfg(test)]
 mod transition_tests;
 
-pub use deckcraft_model::Rgba;
+pub use deckz_model::Rgba;
 use serde::{Deserialize, Serialize};
 
 pub use easing::ease;

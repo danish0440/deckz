@@ -12,7 +12,7 @@ use crate::picture::{Frame, FrameRef};
 use crate::slice::{NalHeader, SliceHeader, nal_type};
 use crate::slicedec::{F_INTRA, F_SKIP, PicState, SliceDecoder, SliceJob};
 use crate::{ColorInfo, Picture, Plane};
-use deckcraft_bitstream::{annexb_nals, length_prefixed_nals, unescape_rbsp};
+use deckz_bitstream::{annexb_nals, length_prefixed_nals, unescape_rbsp};
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 

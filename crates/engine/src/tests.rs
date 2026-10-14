@@ -174,7 +174,7 @@ fn sample_deck_builds_and_renders() {
     assert!(st.doc.validate().is_empty());
     assert!(!st.is_dirty());
     for i in 0..st.doc.slides.len() {
-        let img = deckcraft_render::render_slide(&st.doc, i, &deckcraft_render::RenderOpts { scale: 0.2, ..Default::default() });
+        let img = deckz_render::render_slide(&st.doc, i, &deckz_render::RenderOpts { scale: 0.2, ..Default::default() });
         assert_eq!(img.width, 192);
     }
     let v = s.execute("document.inspect", &json!({})).unwrap();
@@ -187,7 +187,7 @@ fn save_and_reopen_native() {
     sample::open_sample(&mut s).unwrap();
     let bytes = s.execute("file.saveBytes", &json!({})).unwrap()["data"].as_str().unwrap().to_string();
     let n = s.doc().unwrap().doc.slides.len();
-    s.execute("file.openBytes", &json!({"name": "x.deckcraft", "data": bytes})).unwrap();
+    s.execute("file.openBytes", &json!({"name": "x.deckz", "data": bytes})).unwrap();
     assert_eq!(s.doc().unwrap().doc.slides.len(), n);
     assert_eq!(s.documents().len(), 2);
 }
@@ -249,9 +249,9 @@ fn themes_and_slide_size() {
     assert!(v["shapes"].as_array().unwrap().iter().any(|x| x["placeholder"] == "sldNum"));
 }
 
-fn line_ends(s: &Session, id: u64) -> (deckcraft_geom::Point, deckcraft_geom::Point) {
+fn line_ends(s: &Session, id: u64) -> (deckz_geom::Point, deckz_geom::Point) {
     let st = s.doc().unwrap();
-    let sh = st.shape(deckcraft_model::ShapeId(id as u32)).unwrap();
+    let sh = st.shape(deckz_model::ShapeId(id as u32)).unwrap();
     connect::endpoints(&cmd::xfrm_of(&st.doc, &st.selection, sh))
 }
 
@@ -271,7 +271,7 @@ fn connectors_follow_glued_shapes() {
     s.execute("shape.move", &json!({"dx": 50, "dy": 20})).unwrap();
     let (q0, q1) = line_ends(&s, c);
     assert!((q0 - p0).hypot() < 1e-6);
-    assert!(((q1 - p1) - deckcraft_geom::Vec2::new(50.0, 20.0)).hypot() < 1e-6, "{p1:?} → {q1:?}");
+    assert!(((q1 - p1) - deckz_geom::Vec2::new(50.0, 20.0)).hypot() < 1e-6, "{p1:?} → {q1:?}");
     // Undo puts both back in one step.
     s.execute("edit.undo", &json!({})).unwrap();
     assert!((line_ends(&s, c).1 - p1).hypot() < 1e-6);
@@ -279,8 +279,8 @@ fn connectors_follow_glued_shapes() {
     s.execute("edit.select", &json!({"ids": [a]})).unwrap();
     s.execute("edit.delete", &json!({})).unwrap();
     let st = s.doc().unwrap();
-    let sh = st.shape(deckcraft_model::ShapeId(c as u32)).unwrap();
-    assert!(matches!(sh.kind, deckcraft_model::ShapeKind::Connector { start: None, end: Some(_) }));
+    let sh = st.shape(deckz_model::ShapeId(c as u32)).unwrap();
+    assert!(matches!(sh.kind, deckz_model::ShapeKind::Connector { start: None, end: Some(_) }));
 }
 
 #[test]
@@ -301,7 +301,7 @@ fn drawing_a_line_between_shapes_glues_it() {
     let st = s.doc().unwrap();
     let line = st.shapes().iter().find(|x| x.is_line()).unwrap();
     match line.kind {
-        deckcraft_model::ShapeKind::Connector { start: Some((x, _)), end: Some((y, _)) } => {
+        deckz_model::ShapeKind::Connector { start: Some((x, _)), end: Some((y, _)) } => {
             assert_eq!((x.0 as u64, y.0 as u64), (a, b));
         }
         ref k => panic!("not glued: {k:?}"),
@@ -336,7 +336,7 @@ fn freeform_tools_and_command() {
     let st = s.doc().unwrap();
     let sh = st.shapes().last().unwrap();
     match &sh.geom {
-        deckcraft_model::Geom::Custom { paths } => assert!(paths[0].d.ends_with('Z') && paths[0].d.matches(" L ").count() == 2, "{}", paths[0].d),
+        deckz_model::Geom::Custom { paths } => assert!(paths[0].d.ends_with('Z') && paths[0].d.matches(" L ").count() == 2, "{}", paths[0].d),
         g => panic!("{g:?}"),
     }
     let x = sh.xfrm.unwrap();
@@ -359,10 +359,10 @@ fn freeform_tools_and_command() {
         s.pointer(ev(tools::PointerKind::Up, x, y)).unwrap();
     }
     let r = s.key("Enter", Default::default()).unwrap();
-    let id = deckcraft_model::ShapeId(r["id"].as_u64().unwrap() as u32);
+    let id = deckz_model::ShapeId(r["id"].as_u64().unwrap() as u32);
     let st = s.doc().unwrap();
     match &st.shape(id).unwrap().geom {
-        deckcraft_model::Geom::Custom { paths } => assert_eq!(paths[0].d.matches(" C ").count(), 3),
+        deckz_model::Geom::Custom { paths } => assert_eq!(paths[0].d.matches(" C ").count(), 3),
         g => panic!("{g:?}"),
     }
 }
@@ -392,12 +392,12 @@ fn grown_table_frame_covers_its_drawn_rows() {
     }
     let st = s.doc().unwrap();
     let sh = st.shapes().iter().find(|sh| json!(sh.id) == id).unwrap().clone();
-    let deckcraft_model::ShapeKind::Table(t) = &sh.kind else { panic!("not a table") };
+    let deckz_model::ShapeKind::Table(t) = &sh.kind else { panic!("not a table") };
     let drawn: f64 = tools::table_rows(st, t).iter().sum();
     assert!(drawn > 12.0, "rows should grow: {drawn}");
     let x = cmd::xfrm_of(&st.doc, &st.selection, &sh);
     assert!((x.h - drawn).abs() < 1e-6, "frame {} vs drawn {drawn}", x.h);
-    let below_stored = deckcraft_geom::Point::new(120.0, 100.0 + drawn - 2.0);
+    let below_stored = deckz_geom::Point::new(120.0, 100.0 + drawn - 2.0);
     assert!(matches!(s.hit_test(below_stored, 1.0), Some(tools::Hit::Shape { .. })));
 }
 
@@ -411,28 +411,28 @@ fn right_to_left_paragraphs() {
     let para = |s: &Session| s.doc().unwrap().current_slide().unwrap().shapes[0].text.as_ref().unwrap().paragraphs[0].props.clone();
     assert_eq!(para(&s).rtl, Some(true));
     // Left (the default) becomes right: the text stays at its start edge.
-    assert_eq!(para(&s).align, Some(deckcraft_model::text::Align::Right));
+    assert_eq!(para(&s).align, Some(deckz_model::text::Align::Right));
     s.execute("format.align", &json!({"align": "justifyLow"})).unwrap();
-    assert_eq!(para(&s).align, Some(deckcraft_model::text::Align::JustLow));
+    assert_eq!(para(&s).align, Some(deckz_model::text::Align::JustLow));
     // Toggling back keeps a justified alignment.
     s.execute("format.rtl", &json!({})).unwrap();
     assert_eq!(para(&s).rtl, Some(false));
-    assert_eq!(para(&s).align, Some(deckcraft_model::text::Align::JustLow));
+    assert_eq!(para(&s).align, Some(deckz_model::text::Align::JustLow));
     s.execute("format.rtl", &json!({"on": true})).unwrap();
     s.execute("format.alignLeft", &json!({})).unwrap();
     s.execute("format.rtl", &json!({"on": false})).unwrap();
-    assert_eq!(para(&s).align, Some(deckcraft_model::text::Align::Right));
+    assert_eq!(para(&s).align, Some(deckz_model::text::Align::Right));
     s.execute("edit.undo", &json!({})).unwrap();
     assert_eq!(para(&s).rtl, Some(true));
 }
 
 #[test]
 fn header_footer_fixed_date_is_the_slides_own_text() {
-    use deckcraft_model::text::RunKind;
+    use deckz_model::text::RunKind;
     let mut s = session();
     let date = |s: &Session| {
         let slide = s.doc().unwrap().current_slide().unwrap();
-        slide.shapes.iter().find(|x| x.ph_type() == Some(deckcraft_model::PhType::Date)).and_then(|x| x.text.clone()).unwrap()
+        slide.shapes.iter().find(|x| x.ph_type() == Some(deckz_model::PhType::Date)).and_then(|x| x.text.clone()).unwrap()
     };
     let kind = |s: &Session| date(s).paragraphs[0].runs[0].kind.clone();
     // Automatic: a date field, saved with today's date.
@@ -506,9 +506,9 @@ fn hyperlink_on_a_word_or_shape_links_it() {
 
 /// A .pptx (base64) whose first slide's title is set in `font`.
 fn deck_in_font(font: &str) -> String {
-    let mut p = deckcraft_model::Presentation::default();
+    let mut p = deckz_model::Presentation::default();
     let slide = std::sync::Arc::make_mut(&mut p.slides[0]);
-    let mut body = deckcraft_model::text::TextBody::from_text("Hello");
+    let mut body = deckz_model::text::TextBody::from_text("Hello");
     body.paragraphs[0].runs[0].props.font = Some(font.into());
     slide.shapes[0].text = Some(body);
     crate::cmd::base64_encode(&crate::cmd::file::save_bytes(&p, "pptx").unwrap())
@@ -521,7 +521,7 @@ fn opening_a_file_lists_the_fonts_it_uses_that_are_missing() {
     assert_eq!(r["missingFonts"], json!(["Qqq Nonexistent Sans"]));
     assert_eq!(s.doc().unwrap().missing_fonts, vec!["Qqq Nonexistent Sans".to_string()]);
     // A font that is there (bundled or installed) isn't listed; new documents list nothing.
-    let have = deckcraft_fonts::FontDb::global().face(deckcraft_fonts::FALLBACK_FAMILY, "Regular").family.clone();
+    let have = deckz_fonts::FontDb::global().face(deckz_fonts::FALLBACK_FAMILY, "Regular").family.clone();
     let r = s.execute("file.openBytes", &json!({"name": "b.pptx", "data": deck_in_font(&have)})).unwrap();
     assert_eq!(r["missingFonts"], json!([]));
     s.execute("file.new", &json!({})).unwrap();
@@ -533,10 +533,10 @@ fn clicks_in_flipped_shapes_hit_the_text_where_it_is_drawn() {
     // Flips don't mirror text, so a click lands on the character drawn under it.
     let mut s = session();
     let r = s.execute("shape.insert", &json!({"preset": "rect", "rect": [100, 100, 400, 100], "text": "Hello flipped world"})).unwrap();
-    let id = deckcraft_model::ShapeId(r["id"].as_u64().unwrap() as u32);
+    let id = deckz_model::ShapeId(r["id"].as_u64().unwrap() as u32);
     let pos = |s: &Session, x: f64, y: f64| {
         let st = s.doc().unwrap();
-        tools::text_pos(st, st.shape(id).unwrap(), deckcraft_geom::Point::new(x, y))
+        tools::text_pos(st, st.shape(id).unwrap(), deckz_geom::Point::new(x, y))
     };
     let xs = [240.0, 300.0, 360.0];
     let plain = xs.map(|x| pos(&s, x, 150.0));
@@ -582,7 +582,7 @@ fn shapes_off_the_slide_can_be_selected_and_moved() {
     s.execute("edit.select", &json!({"ids": []})).unwrap();
     let ev = |kind, x, y| PointerEvent { kind, x, y, mods: Mods::default(), tol: 3.0 };
     // Hover and click wholly off the slide.
-    assert!(matches!(s.hit_test(deckcraft_geom::Point::new(1060.0, 140.0), 3.0), Some(tools::Hit::Shape { id, .. }) if id.0 as u64 == off));
+    assert!(matches!(s.hit_test(deckz_geom::Point::new(1060.0, 140.0), 3.0), Some(tools::Hit::Shape { id, .. }) if id.0 as u64 == off));
     s.pointer(ev(PointerKind::Down, 1060.0, 140.0)).unwrap();
     s.pointer(ev(PointerKind::Up, 1060.0, 140.0)).unwrap();
     assert_eq!(s.doc().unwrap().selection.shapes.iter().map(|i| i.0 as u64).collect::<Vec<_>>(), vec![off]);
@@ -797,7 +797,7 @@ fn file_info_reports_the_presentation() {
     s.execute("file.info", &json!({})).unwrap();
     assert_eq!(s.doc().unwrap().history.undo.len(), before);
     // Saved to disk, it reports where and how big.
-    let dir = std::env::temp_dir().join(format!("deckcraft-info-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("deckz-info-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("Info test.pptx").to_string_lossy().to_string();
     s.execute("file.saveAs", &json!({"path": path})).unwrap();

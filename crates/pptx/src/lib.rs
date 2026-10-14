@@ -2,7 +2,7 @@
 //! ECMA-376 standard.
 //!
 //! [`import`] reads a package leniently (unknown parts are skipped, malformed parts are logged and
-//! ignored, every size and depth is bounded) into the DeckCraft model; [`export`] writes a valid
+//! ignored, every size and depth is bounded) into the DeckZ model; [`export`] writes a valid
 //! package that PowerPoint opens without repair.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 #![forbid(unsafe_code)]
@@ -16,7 +16,7 @@ mod tables;
 mod write;
 mod xml;
 
-use deckcraft_model::Presentation;
+use deckz_model::Presentation;
 
 /// Extension URI of the PowerPoint 2010 section list in `presentation.xml`.
 pub(crate) const SECTION_EXT_URI: &str = "{521415D9-36F7-43E2-AB2F-B90AF26B5E84}";

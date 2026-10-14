@@ -1,4 +1,4 @@
-//! The DeckCraft engine façade.
+//! The DeckZ engine façade.
 //!
 //! Every user-visible action is a command with a stable id (`slide.new`, `shape.insert`,
 //! `text.insert`, `format.bold`…) and JSON parameters. The egui UI, the CLI, the control channel
@@ -19,15 +19,15 @@ pub mod tools;
 
 use std::sync::Arc;
 
-use deckcraft_model::{Presentation, Shape, ShapeId, Slide, SlideId};
+use deckz_model::{Presentation, Shape, ShapeId, Slide, SlideId};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 pub use cmd::{CommandInfo, CommandSpec, command_specs, find_command};
-pub use deckcraft_geom as geom;
-pub use deckcraft_media as media;
-pub use deckcraft_model as model;
-pub use deckcraft_render as render;
+pub use deckz_geom as geom;
+pub use deckz_media as media;
+pub use deckz_model as model;
+pub use deckz_render as render;
 pub use tools::{Mods, PointerEvent, PointerKind, ToolKind};
 
 #[derive(Debug, thiserror::Error)]
@@ -46,8 +46,8 @@ pub enum EngineError {
     Internal(String, String),
 }
 
-impl From<deckcraft_model::ModelError> for EngineError {
-    fn from(e: deckcraft_model::ModelError) -> Self {
+impl From<deckz_model::ModelError> for EngineError {
+    fn from(e: deckz_model::ModelError) -> Self {
         EngineError::Other(e.to_string())
     }
 }
@@ -151,7 +151,7 @@ pub struct Composition {
     /// The part the input method is converting, relative to `start` (drawn with a thicker line).
     pub active: Option<(usize, usize)>,
     /// The formatting the composed text is typed with (as `text.insert` would choose).
-    pub props: Option<deckcraft_model::text::RunProps>,
+    pub props: Option<deckz_model::text::RunProps>,
     /// The presentation and selection before the composition began.
     pub before: Arc<Presentation>,
     pub before_selection: Selection,
@@ -218,7 +218,7 @@ impl DocState {
         }
     }
     pub fn shape(&self, id: ShapeId) -> Option<&Shape> {
-        deckcraft_model::find_shape(self.shapes(), id)
+        deckz_model::find_shape(self.shapes(), id)
     }
     pub fn selected_shapes(&self) -> Vec<&Shape> {
         self.selection.shapes.iter().filter_map(|id| self.shape(*id)).collect()
@@ -316,8 +316,8 @@ pub struct Clipboard {
     pub shapes: Vec<Shape>,
     pub slides: Vec<Slide>,
     /// Media the copied shapes/slides reference.
-    pub media: Vec<deckcraft_model::MediaItem>,
-    pub text: Option<deckcraft_model::TextBody>,
+    pub media: Vec<deckz_model::MediaItem>,
+    pub text: Option<deckz_model::TextBody>,
     pub plain: String,
     /// How many times the shapes were pasted (each paste offsets further).
     pub pastes: u32,
@@ -335,7 +335,7 @@ pub struct Session {
     /// Format Painter: copied shape/text formatting and whether it stays on (double-click).
     pub painter: Option<(cmd::format::Painted, bool)>,
     /// Animation Painter: copied shape animations and whether it stays on (double-click).
-    pub anim_painter: Option<(Vec<deckcraft_model::anim::Animation>, bool)>,
+    pub anim_painter: Option<(Vec<deckz_model::anim::Animation>, bool)>,
     /// Set as Default Shape: the look new shapes get.
     pub default_look: Option<cmd::format::Painted>,
     /// Nesting of commands run by commands: only the outermost one is an undo step and a journal
@@ -349,7 +349,7 @@ pub struct Session {
     pub gif_paused: std::collections::HashSet<ShapeId>,
     /// Text keys follow the Mac (Option+arrows move by word, Cmd+arrows to the line or text
     /// ends) instead of Windows and Linux (Ctrl+arrows by word or paragraph). Defaults to the
-    /// platform DeckCraft was built for.
+    /// platform DeckZ was built for.
     pub mac_keys: bool,
 }
 

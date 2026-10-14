@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=DeckZ
+GenericName=Presentation
+Comment=Create and present slide decks
+Exec=deckz %F
+TryExec=deckz
+Icon=com.pintaz.deckz
+Terminal=false
+StartupNotify=true
+StartupWMClass=com.pintaz.deckz
+Categories=Office;Presentation;
+MimeType=application/x-deckz;application/vnd.openxmlformats-officedocument.presentationml.presentation;application/vnd.openxmlformats-officedocument.presentationml.template;application/vnd.openxmlformats-officedocument.presentationml.slideshow;
+Keywords=presentation;slides;slide show;deck;pptx;keynote;powerpoint;

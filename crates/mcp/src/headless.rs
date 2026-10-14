@@ -1,6 +1,6 @@
 //! An in-process engine session that answers the engine-level control-channel methods itself.
 
-use deckcraft_engine::{Mods, PointerEvent, PointerKind, Session, ToolKind};
+use deckz_engine::{Mods, PointerEvent, PointerKind, Session, ToolKind};
 use serde_json::{Value, json};
 
 use crate::backend::Backend;
@@ -17,8 +17,8 @@ impl Default for Headless {
 }
 
 /// Hint appended to errors for methods that need a window.
-pub(crate) const NEEDS_APP: &str = "it needs the desktop app: start `deckcraft --control 7979` and run the MCP server \
-with `deckcraft-cli mcp --connect 7979`";
+pub(crate) const NEEDS_APP: &str = "it needs the desktop app: start `deckz --control 7979` and run the MCP server \
+with `deckz-cli mcp --connect 7979`";
 
 fn s<'a>(p: &'a Value, k: &str) -> Option<&'a str> {
     p.get(k).and_then(Value::as_str)
@@ -47,11 +47,11 @@ pub fn tool_kind(name: &str, preset: Option<&str>) -> Option<ToolKind> {
         "select" | "selection" | "arrow" => ToolKind::Select,
         "textBox" | "text" | "textbox" => ToolKind::TextBox,
         "shape" => ToolKind::Shape { preset: preset.unwrap_or("rect").to_string() },
-        "pen" => ToolKind::Ink { mode: "pen".into(), color: deckcraft_engine::model::Rgba::BLACK, width: 2.0 },
-        "highlighter" => ToolKind::Ink { mode: "highlighter".into(), color: deckcraft_engine::model::Rgba::rgb(255, 230, 0), width: 10.0 },
-        "eraser" => ToolKind::Ink { mode: "eraser".into(), color: deckcraft_engine::model::Rgba::BLACK, width: 2.0 },
-        other if deckcraft_engine::geom::preset::info(other).is_some() => ToolKind::Shape { preset: other.to_string() },
-        other if deckcraft_engine::tools::is_freeform_tool(other) => ToolKind::Shape { preset: other.to_string() },
+        "pen" => ToolKind::Ink { mode: "pen".into(), color: deckz_engine::model::Rgba::BLACK, width: 2.0 },
+        "highlighter" => ToolKind::Ink { mode: "highlighter".into(), color: deckz_engine::model::Rgba::rgb(255, 230, 0), width: 10.0 },
+        "eraser" => ToolKind::Ink { mode: "eraser".into(), color: deckz_engine::model::Rgba::BLACK, width: 2.0 },
+        other if deckz_engine::geom::preset::info(other).is_some() => ToolKind::Shape { preset: other.to_string() },
+        other if deckz_engine::tools::is_freeform_tool(other) => ToolKind::Shape { preset: other.to_string() },
         _ => return None,
     })
 }
@@ -69,7 +69,7 @@ impl Headless {
     fn exec(&mut self, id: &str, params: &Value) -> Result<Value, String> {
         let r = self.session.execute(id, params).map_err(|e| {
             let ui_only = ["app.", "view.", "window.", "ui."].iter().any(|p| id.starts_with(p));
-            if ui_only && deckcraft_engine::find_command(id).is_none() { format!("`{id}` is a UI command; {NEEDS_APP}") } else { e.to_string() }
+            if ui_only && deckz_engine::find_command(id).is_none() { format!("`{id}` is a UI command; {NEEDS_APP}") } else { e.to_string() }
         });
         self.session.ui_requests.clear();
         r
@@ -101,17 +101,17 @@ impl Headless {
             return Err(format!("no slide {i}"));
         }
         let scale = p.get("scale").and_then(Value::as_f64).unwrap_or(1.0).clamp(0.05, 8.0);
-        let img = deckcraft_engine::render::render_slide(
+        let img = deckz_engine::render::render_slide(
             &st.doc,
             i,
-            &deckcraft_engine::render::RenderOpts { scale, edit: p.get("edit").and_then(Value::as_bool).unwrap_or(false), ..Default::default() },
+            &deckz_engine::render::RenderOpts { scale, edit: p.get("edit").and_then(Value::as_bool).unwrap_or(false), ..Default::default() },
         );
         let png = img.to_png();
         if let Some(path) = s(p, "path") {
             std::fs::write(path, &png).map_err(|e| format!("{path}: {e}"))?;
             return Ok(json!({"path": path, "width": img.width, "height": img.height}));
         }
-        Ok(json!({"png": deckcraft_engine::cmd::base64_encode(&png), "width": img.width, "height": img.height, "slide": i}))
+        Ok(json!({"png": deckz_engine::cmd::base64_encode(&png), "width": img.width, "height": img.height, "slide": i}))
     }
 }
 

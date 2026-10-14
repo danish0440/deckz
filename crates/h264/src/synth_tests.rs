@@ -6,7 +6,7 @@
 
 use crate::Decoder;
 use crate::cabac::{Cabac, NEXT_STATE, RANGE_TAB_LPS};
-use deckcraft_bitstream::{BitWriter, escape_rbsp};
+use deckz_bitstream::{BitWriter, escape_rbsp};
 
 const MB_W: usize = 4;
 const MB_H: usize = 3;
@@ -437,7 +437,7 @@ type Planes3 = (Vec<u8>, Vec<u8>, Vec<u8>);
 
 /// Validate the hand-built stream and its expected output with ffmpeg when available.
 fn cross_check_ffmpeg(stream: &[u8], expected: &[Planes3], name: &str) {
-    // The ffmpeg cross-check lives in FilmCraft (test oracle); this copy checks the expected planes only.
+    // The ffmpeg cross-check lives in FilmZ (test oracle); this copy checks the expected planes only.
     let _ = (stream, expected, name);
 }
 

@@ -2,10 +2,10 @@
 
 use std::sync::Arc;
 
-use deckcraft_model::edit::{self as ed, Pos};
-use deckcraft_model::resolve::{self, Ctx};
-use deckcraft_model::text::{AutoFit, Hyperlink, Run, RunKind, RunProps, TextBody};
-use deckcraft_model::{Presentation, ShapeId, ShapeKind};
+use deckz_model::edit::{self as ed, Pos};
+use deckz_model::resolve::{self, Ctx};
+use deckz_model::text::{AutoFit, Hyperlink, Run, RunKind, RunProps, TextBody};
+use deckz_model::{Presentation, ShapeId, ShapeKind};
 use serde_json::{Value, json};
 
 use super::*;
@@ -83,7 +83,7 @@ fn body_mut<'a>(doc: &'a mut Presentation, sel: &Selection, t: &TextSel) -> Opti
         return doc.slides.get_mut(sel.slide).map(|s| &mut Arc::make_mut(s).notes);
     }
     let shapes = crate::shapes_mut(doc, sel)?;
-    let sh = deckcraft_model::find_shape_mut(shapes, t.shape)?;
+    let sh = deckz_model::find_shape_mut(shapes, t.shape)?;
     if let Some((r, c)) = t.cell {
         if let ShapeKind::Table(tb) = &mut sh.kind {
             return tb.cell_mut(r, c).map(|x| &mut x.text);
@@ -123,14 +123,14 @@ pub fn fit_text_box(s: &mut Session, id: ShapeId) -> Result<()> {
         return Ok(());
     }
     let x = xfrm_of(&doc, &sel, &sh);
-    let geo = deckcraft_render::shape_geometry(&sh, x.w, x.h);
-    let fields = deckcraft_text::NoFields;
+    let geo = deckz_render::shape_geometry(&sh, x.w, x.h);
+    let fields = deckz_text::NoFields;
     let mut nx = x;
     if bp.wrap == Some(false) {
-        nx.w = deckcraft_text::fit_width(&ctx, &sh, &body, geo.text_rect, &fields).max(20.0);
+        nx.w = deckz_text::fit_width(&ctx, &sh, &body, geo.text_rect, &fields).max(20.0);
     }
-    let geo = deckcraft_render::shape_geometry(&sh, nx.w, nx.h);
-    let need = deckcraft_text::fit_height(&ctx, &sh, &body, geo.text_rect, &fields);
+    let geo = deckz_render::shape_geometry(&sh, nx.w, nx.h);
+    let need = deckz_text::fit_height(&ctx, &sh, &body, geo.text_rect, &fields);
     let extra = (nx.h - geo.text_rect.height()).max(0.0);
     nx.h = (need + extra).max(8.0);
     if (nx.h - x.h).abs() < 0.01 && (nx.w - x.w).abs() < 0.01 && sh.xfrm.is_some() {
@@ -140,7 +140,7 @@ pub fn fit_text_box(s: &mut Session, id: ShapeId) -> Result<()> {
     let st = s.doc_mut()?;
     let mut d = (*st.doc).clone();
     if let Some(list) = crate::shapes_mut(&mut d, &st.selection)
-        && let Some(target) = deckcraft_model::find_shape_mut(list, id)
+        && let Some(target) = deckz_model::find_shape_mut(list, id)
     {
         target.xfrm = Some(nx);
     }
@@ -158,7 +158,7 @@ pub(crate) fn ctx_for<'a>(doc: &'a Presentation, sel: &Selection) -> Option<Ctx<
 }
 
 /// Lay out the text being edited (for vertical caret movement and hit testing).
-pub fn layout_for(st: &DocState, t: &TextSel) -> Option<deckcraft_text::TextLayout> {
+pub fn layout_for(st: &DocState, t: &TextSel) -> Option<deckz_text::TextLayout> {
     if t.notes || t.cell.is_some() {
         return None;
     }
@@ -166,12 +166,12 @@ pub fn layout_for(st: &DocState, t: &TextSel) -> Option<deckcraft_text::TextLayo
     let body = sh.text.as_ref()?;
     let ctx = ctx_for(&st.doc, &st.selection)?;
     let x = xfrm_of(&st.doc, &st.selection, sh);
-    let geo = deckcraft_render::shape_geometry(sh, x.w, x.h);
-    Some(deckcraft_text::layout(
+    let geo = deckz_render::shape_geometry(sh, x.w, x.h);
+    Some(deckz_text::layout(
         &ctx,
         sh,
         body,
-        &deckcraft_text::Opts { rect: geo.text_rect, fields: &deckcraft_text::NoFields, prompt_color: None, no_shrink: false },
+        &deckz_text::Opts { rect: geo.text_rect, fields: &deckz_text::NoFields, prompt_color: None, no_shrink: false },
     ))
 }
 
@@ -179,29 +179,29 @@ pub fn layout_for(st: &DocState, t: &TextSel) -> Option<deckcraft_text::TextLayo
 /// vertical text as drawn). Text with no paragraph yet (a placeholder about to be typed in) is
 /// measured as one empty paragraph, so the caret shows where typing begins. `None` for notes and
 /// table cells, which aren't laid out on the slide here.
-pub fn caret_line(st: &DocState, t: &TextSel) -> Option<(deckcraft_geom::Point, deckcraft_geom::Point)> {
+pub fn caret_line(st: &DocState, t: &TextSel) -> Option<(deckz_geom::Point, deckz_geom::Point)> {
     if t.notes || t.cell.is_some() {
         return None;
     }
     let sh = st.shape(t.shape)?;
     let ctx = ctx_for(&st.doc, &st.selection)?;
     let x = xfrm_of(&st.doc, &st.selection, sh);
-    let geo = deckcraft_render::shape_geometry(sh, x.w, x.h);
+    let geo = deckz_render::shape_geometry(sh, x.w, x.h);
     let mut body = sh.text.clone().unwrap_or_default();
     if body.paragraphs.is_empty() {
-        body.paragraphs.push(deckcraft_model::text::Paragraph::default());
+        body.paragraphs.push(deckz_model::text::Paragraph::default());
     }
-    let l = deckcraft_text::layout(
+    let l = deckz_text::layout(
         &ctx,
         sh,
         &body,
-        &deckcraft_text::Opts { rect: geo.text_rect, fields: &deckcraft_text::NoFields, prompt_color: None, no_shrink: false },
+        &deckz_text::Opts { rect: geo.text_rect, fields: &deckz_text::NoFields, prompt_color: None, no_shrink: false },
     );
     // After End on a wrapped line the caret is drawn at that line's end.
-    let aff = if t.at_line_end() { deckcraft_text::Affinity::Upstream } else { deckcraft_text::Affinity::Downstream };
-    let (cx, top, bot) = l.caret_drawn(deckcraft_text::Pos { para: t.caret.0, ch: t.caret.1 }, aff)?;
-    let m = deckcraft_render::text_transform(x.affine(), geo.text_rect, l.rotation);
-    Some((m * deckcraft_geom::Point::new(cx, top), m * deckcraft_geom::Point::new(cx, bot)))
+    let aff = if t.at_line_end() { deckz_text::Affinity::Upstream } else { deckz_text::Affinity::Downstream };
+    let (cx, top, bot) = l.caret_drawn(deckz_text::Pos { para: t.caret.0, ch: t.caret.1 }, aff)?;
+    let m = deckz_render::text_transform(x.affine(), geo.text_rect, l.rotation);
+    Some((m * deckz_geom::Point::new(cx, top), m * deckz_geom::Point::new(cx, bot)))
 }
 
 fn pos_param(p: &Value, key: &str) -> Option<Pos> {
@@ -235,7 +235,7 @@ fn edit(s: &mut Session, p: &Value) -> Result<Value> {
     if sh.text.is_none() && cell.is_none() {
         s.edit(|doc, sel| {
             if let Some(list) = crate::shapes_mut(doc, sel)
-                && let Some(x) = deckcraft_model::find_shape_mut(list, id)
+                && let Some(x) = deckz_model::find_shape_mut(list, id)
             {
                 x.text = Some(TextBody::default());
             }
@@ -387,7 +387,7 @@ pub(crate) fn insert_field(s: &mut Session, field: &str, text: &str) -> Result<V
         let at = ed::delete(body, a, b);
         let props = ed::props_at(body, at);
         let src = TextBody {
-            paragraphs: vec![deckcraft_model::text::Paragraph {
+            paragraphs: vec![deckz_model::text::Paragraph {
                 runs: vec![Run { text: text.clone(), props, kind: RunKind::Field { field: field.clone() } }],
                 ..Default::default()
             }],
@@ -485,18 +485,18 @@ fn commit(s: &mut Session, p: &Value) -> Result<Value> {
 /// Underlines under an input method's composition (#101), in slide coordinates: `(from, to,
 /// thick)` per line, thick under the part being converted. Empty without a composition or when
 /// the edited text isn't laid out on the slide (notes, table cells).
-pub fn composition_underlines(st: &DocState) -> Vec<(deckcraft_geom::Point, deckcraft_geom::Point, bool)> {
+pub fn composition_underlines(st: &DocState) -> Vec<(deckz_geom::Point, deckz_geom::Point, bool)> {
     let (Some(c), Some(t)) = (&st.composition, &st.selection.text) else { return vec![] };
     let Some(sh) = st.shape(t.shape) else { return vec![] };
     let Some(l) = layout_for(st, t) else { return vec![] };
     let x = xfrm_of(&st.doc, &st.selection, sh);
-    let tr = deckcraft_render::shape_geometry(sh, x.w, x.h).text_rect;
-    let m = deckcraft_render::text_transform(x.affine(), tr, l.rotation);
-    let pos = |ch: usize| deckcraft_text::Pos { para: c.start.0, ch: c.start.1 + ch };
+    let tr = deckz_render::shape_geometry(sh, x.w, x.h).text_rect;
+    let m = deckz_render::text_transform(x.affine(), tr, l.rotation);
+    let pos = |ch: usize| deckz_text::Pos { para: c.start.0, ch: c.start.1 + ch };
     let mut out = vec![];
     let mut add = |a: usize, b: usize, thick: bool| {
         for (x0, x1, y) in l.composition_underlines(pos(a), pos(b)) {
-            out.push((m * deckcraft_geom::Point::new(x0, y), m * deckcraft_geom::Point::new(x1, y), thick));
+            out.push((m * deckz_geom::Point::new(x0, y), m * deckz_geom::Point::new(x1, y), thick));
         }
     };
     add(0, c.len, false);
@@ -551,7 +551,7 @@ fn delete(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 /// Is paragraph `para` right-to-left (its lines run from the right)?
-fn para_rtl(layout: Option<&deckcraft_text::TextLayout>, body: &TextBody, para: usize) -> bool {
+fn para_rtl(layout: Option<&deckz_text::TextLayout>, body: &TextBody, para: usize) -> bool {
     match layout.and_then(|l| l.lines.iter().find(|x| x.para == para)) {
         Some(line) => line.rtl,
         None => body.paragraphs.get(para).and_then(|x| x.props.rtl).unwrap_or(false),
@@ -559,14 +559,14 @@ fn para_rtl(layout: Option<&deckcraft_text::TextLayout>, body: &TextBody, para: 
 }
 
 fn move_caret(s: &mut Session, p: &Value) -> Result<Value> {
-    use deckcraft_text::Affinity;
+    use deckz_text::Affinity;
     let to = str_param(p, "to").unwrap_or("right").to_string();
     let extend = bool_or(p, "extend", false);
     let st = s.doc()?;
     let t = st.selection.text.clone().ok_or_else(|| bad("text.move", "not editing text"))?;
     let body = body_of(st, &t).cloned().unwrap_or_default();
     let layout = layout_for(st, &t);
-    let lp = |c: Pos| deckcraft_text::Pos { para: c.0, ch: c.1 };
+    let lp = |c: Pos| deckz_text::Pos { para: c.0, ch: c.1 };
     let caret = t.caret;
     let aff = if t.at_line_end() { Affinity::Upstream } else { Affinity::Downstream };
     // Left and right are on screen: in a right-to-left paragraph left goes forward in the text.
@@ -702,7 +702,7 @@ fn set(s: &mut Session, p: &Value) -> Result<Value> {
         };
         let Some(body) = target else { return Err(bad("text.set", "no text here (tables need `cell`)")) };
         let keep = body.paragraphs.first().and_then(|p| p.runs.first()).map(|r| r.props.clone()).unwrap_or_default();
-        let levels: Vec<(u8, deckcraft_model::text::ParaProps)> = body.paragraphs.iter().map(|p| (p.level, p.props.clone())).collect();
+        let levels: Vec<(u8, deckz_model::text::ParaProps)> = body.paragraphs.iter().map(|p| (p.level, p.props.clone())).collect();
         let mut nb = TextBody::from_text(&text);
         for (i, para) in nb.paragraphs.iter_mut().enumerate() {
             // Leading tabs set the outline level.
@@ -836,7 +836,7 @@ pub(crate) fn link_text(s: &mut Session, link: Hyperlink, display: &str) -> Resu
 
 /// Apply paragraph changes to the paragraphs touched by the selection (or all paragraphs of the
 /// selected shapes).
-pub(crate) fn format_para(s: &mut Session, f: &(dyn Fn(&mut deckcraft_model::text::Paragraph) + Send + Sync)) -> Result<Value> {
+pub(crate) fn format_para(s: &mut Session, f: &(dyn Fn(&mut deckz_model::text::Paragraph) + Send + Sync)) -> Result<Value> {
     let st = s.doc()?;
     if let Some(t) = st.selection.text.clone() {
         let (a, b) = t.ordered();
@@ -882,7 +882,7 @@ pub(crate) fn format_para(s: &mut Session, f: &(dyn Fn(&mut deckcraft_model::tex
 }
 
 /// Apply body (text box) changes to the edited or selected shapes.
-pub(crate) fn format_body(s: &mut Session, f: &(dyn Fn(&mut deckcraft_model::text::BodyProps) + Send + Sync)) -> Result<Value> {
+pub(crate) fn format_body(s: &mut Session, f: &(dyn Fn(&mut deckz_model::text::BodyProps) + Send + Sync)) -> Result<Value> {
     let st = s.doc()?;
     let ids: Vec<ShapeId> = match &st.selection.text {
         Some(t) if !t.notes => vec![t.shape],

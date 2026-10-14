@@ -1,9 +1,9 @@
-//! DeckCraft fonts: the font database (craft-fonts families, user and system fonts, and open
+//! DeckZ fonts: the font database (craft-fonts families, user and system fonts, and open
 //! substitutes for the Office fonts presentations ask for), vertical metrics, glyph outlines and
 //! OpenType shaping, script/slot classification and per-cluster fallback.
 //!
 //! Shaping here is style-agnostic: [`shape`] and [`shape_range`] turn text in one face into glyph
-//! ids, clusters and advances in font units. `deckcraft-text` applies sizes, tracking, scaling and
+//! ids, clusters and advances in font units. `deckz-text` applies sizes, tracking, scaling and
 //! justification on top.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 #![forbid(unsafe_code)]
@@ -158,7 +158,7 @@ mod tests {
     fn colour_fonts_are_recognised() {
         let db = FontDb::with_font_dirs(Vec::new());
         assert!(db.add_font(include_bytes!("../../render/tests/fixtures/colr-squares.ttf").to_vec()) > 0);
-        assert!(db.face("DeckCraft Colr Squares", "Regular").is_color());
+        assert!(db.face("DeckZ Colr Squares", "Regular").is_color());
         assert!(!fontdb::last_resort_face().is_color());
     }
 
@@ -194,14 +194,14 @@ mod tests {
         // Documents name fonts by their Windows family ("Segoe UI Semibold"); the font's
         // typographic family is "Segoe UI" with a "Semibold" style. The fixture is named the same way.
         let check = |db: &FontDb| {
-            assert!(db.has_family("DeckCraft Legacy Semibold"));
+            assert!(db.has_family("DeckZ Legacy Semibold"));
             for style in ["Regular", "Bold"] {
-                let f = db.face("DeckCraft Legacy Semibold", style);
-                assert_eq!((f.family.as_str(), f.style.as_str()), ("DeckCraft Legacy", "Semibold"), "{style}");
+                let f = db.face("DeckZ Legacy Semibold", style);
+                assert_eq!((f.family.as_str(), f.style.as_str()), ("DeckZ Legacy", "Semibold"), "{style}");
             }
-            assert_eq!(db.document_face("DeckCraft Legacy Semibold", "Regular").family, "DeckCraft Legacy", "installed, so not Calibri");
+            assert_eq!(db.document_face("DeckZ Legacy Semibold", "Regular").family, "DeckZ Legacy", "installed, so not Calibri");
             // The typographic name still works.
-            assert_eq!(db.face("DeckCraft Legacy", "Semibold").style, "Semibold");
+            assert_eq!(db.face("DeckZ Legacy", "Semibold").style, "Semibold");
         };
         // Loaded directly…
         let db = FontDb::with_font_dirs(Vec::new());
@@ -219,8 +219,8 @@ mod tests {
             // family's Regular must still load and pick the Regular file, not settle for Semibold.
             let db = FontDb::with_font_dirs(vec![dir]);
             db.set_system_fallback(false);
-            assert_eq!(db.face("DeckCraft Legacy Semibold", "Regular").style, "Semibold");
-            let regular = db.face("DeckCraft Legacy", "Regular");
+            assert_eq!(db.face("DeckZ Legacy Semibold", "Regular").style, "Semibold");
+            let regular = db.face("DeckZ Legacy", "Regular");
             assert_eq!((regular.style.as_str(), regular.weight), ("Regular", 400.0));
         }
     }
@@ -241,7 +241,7 @@ mod tests {
                 assert_eq!(db.document_face(missing, "Regular").family, db.face(twin, "Regular").family, "{missing}");
             }
         }
-        // Metric-compatible stand-ins and DeckCraft's default keep their own fallbacks.
+        // Metric-compatible stand-ins and DeckZ's default keep their own fallbacks.
         // So do Office's cloud fonts, which PowerPoint downloads and draws as themselves.
         for kept in ["Arial", "Times New Roman", "Cambria", "Courier New", FALLBACK_FAMILY, "Aptos", "Aptos Display", "Grandview"] {
             assert_eq!(db.document_face(kept, "Regular").family, db.face(kept, "Regular").family, "{kept}");

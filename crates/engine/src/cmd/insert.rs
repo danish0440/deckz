@@ -1,11 +1,11 @@
 //! Insert tab: shapes, text boxes, pictures, tables, charts, audio, video, WordArt, fields.
 
-use deckcraft_color::SchemeSlot;
-use deckcraft_geom::Xfrm;
-use deckcraft_model::chart::ChartType;
-use deckcraft_model::style::PictureFill;
-use deckcraft_model::text::{AutoFit, RunKind, TextBody};
-use deckcraft_model::{Chart, ColorRef, Fill, Geom, MediaClip, Shape, ShapeId, ShapeKind, ShapeStyle, Table};
+use deckz_color::SchemeSlot;
+use deckz_geom::Xfrm;
+use deckz_model::chart::ChartType;
+use deckz_model::style::PictureFill;
+use deckz_model::text::{AutoFit, RunKind, TextBody};
+use deckz_model::{Chart, ColorRef, Fill, Geom, MediaClip, Shape, ShapeId, ShapeKind, ShapeStyle, Table};
 use serde_json::{Value, json};
 
 use super::*;
@@ -100,7 +100,7 @@ pub fn specs() -> Vec<CommandSpec> {
 
 /// Default size for a click-inserted shape (1 inch square, PowerPoint style).
 fn default_rect(s: &Session, w: f64, h: f64) -> Xfrm {
-    let size = s.active().map(|d| d.doc.slide_size).unwrap_or(deckcraft_model::defaults::WIDE);
+    let size = s.active().map(|d| d.doc.slide_size).unwrap_or(deckz_model::defaults::WIDE);
     Xfrm::new((size.width - w) / 2.0, (size.height - h) / 2.0, w, h)
 }
 
@@ -118,7 +118,7 @@ pub(crate) fn add_shape(s: &mut Session, mut shape: Shape, select: bool) -> Resu
                 _ => shape
                     .geom
                     .preset_name()
-                    .and_then(deckcraft_geom::preset::info)
+                    .and_then(deckz_geom::preset::info)
                     .map(|i| i.label.split(':').next().unwrap_or(i.label).trim().to_string())
                     .unwrap_or_else(|| "Shape".into()),
             };
@@ -138,8 +138,8 @@ pub(crate) fn add_shape(s: &mut Session, mut shape: Shape, select: bool) -> Resu
 
 fn insert_shape(s: &mut Session, p: &Value) -> Result<Value> {
     let preset = str_param(p, "preset").unwrap_or("rect");
-    let info = deckcraft_geom::preset::info(preset).ok_or_else(|| bad("shape.insert", format!("unknown preset `{preset}`")))?;
-    let line_like = deckcraft_geom::preset::is_line_like(preset);
+    let info = deckz_geom::preset::info(preset).ok_or_else(|| bad("shape.insert", format!("unknown preset `{preset}`")))?;
+    let line_like = deckz_geom::preset::is_line_like(preset);
     let rect = rect_param(p, "rect").unwrap_or_else(|| default_rect(s, 72.0, if line_like { 0.0 } else { 72.0 }));
     let adj: Vec<f64> = p.get("adj").and_then(Value::as_array).map(|a| a.iter().filter_map(Value::as_f64).collect()).unwrap_or_default();
     let mut shape = Shape {
@@ -161,14 +161,14 @@ fn insert_shape(s: &mut Session, p: &Value) -> Result<Value> {
         }
         if let Some(tb) = shape.text.as_mut() {
             for para in &mut tb.paragraphs {
-                para.props.align = Some(deckcraft_model::text::Align::Center);
+                para.props.align = Some(deckz_model::text::Align::Center);
             }
         }
     } else {
         shape.kind = if preset.contains("Connector") { ShapeKind::Connector { start: None, end: None } } else { ShapeKind::Shape };
         if preset == "straightConnector1" {
-            shape.line = Some(deckcraft_model::Line {
-                tail: Some(deckcraft_model::style::LineEnd { kind: "triangle".into(), w: "med".into(), len: "med".into() }),
+            shape.line = Some(deckz_model::Line {
+                tail: Some(deckz_model::style::LineEnd { kind: "triangle".into(), w: "med".into(), len: "med".into() }),
                 ..Default::default()
             });
         }
@@ -182,7 +182,7 @@ fn insert_shape(s: &mut Session, p: &Value) -> Result<Value> {
 
 fn presets(_s: &mut Session, _p: &Value) -> Result<Value> {
     Ok(Value::Array(
-        deckcraft_geom::preset::CATALOG.iter().map(|i| json!({"name": i.name, "label": i.label, "category": i.category.label()})).collect(),
+        deckz_geom::preset::CATALOG.iter().map(|i| json!({"name": i.name, "label": i.label, "category": i.category.label()})).collect(),
     ))
 }
 
@@ -295,7 +295,7 @@ fn fitted(s: &Session, bytes: &[u8]) -> (f64, f64) {
         .and_then(|r| r.into_dimensions().ok())
         .map(|(w, h)| (w as f64 * 0.75, h as f64 * 0.75))
         .unwrap_or((288.0, 216.0));
-    let size = s.active().map(|d| d.doc.slide_size).unwrap_or(deckcraft_model::defaults::WIDE);
+    let size = s.active().map(|d| d.doc.slide_size).unwrap_or(deckz_model::defaults::WIDE);
     let k = (size.width * 0.9 / w.max(1.0)).min(size.height * 0.9 / h.max(1.0)).min(1.0);
     (w * k, h * k)
 }
@@ -306,7 +306,7 @@ fn picture(s: &mut Session, p: &Value) -> Result<Value> {
     if !ct.starts_with("image/") {
         return Err(bad("insert.picture", format!("{name} is not a picture")));
     }
-    if ct != "image/svg+xml" && deckcraft_render::decode_image(&bytes).is_none() {
+    if ct != "image/svg+xml" && deckz_render::decode_image(&bytes).is_none() {
         return Err(EngineError::Other(format!("{name}: the picture can't be read")));
     }
     let (w, h) = fitted(s, &bytes);
@@ -316,7 +316,7 @@ fn picture(s: &mut Session, p: &Value) -> Result<Value> {
             .into_iter()
             .find(|x| {
                 x.ph_type()
-                    .is_some_and(|k| matches!(k, deckcraft_model::PhType::Picture | deckcraft_model::PhType::Obj | deckcraft_model::PhType::Body))
+                    .is_some_and(|k| matches!(k, deckz_model::PhType::Picture | deckz_model::PhType::Obj | deckz_model::PhType::Body))
                     && x.text.as_ref().is_none_or(|t| t.is_empty())
             })
             .map(|x| (x.id, xfrm_of(&d.doc, &d.selection, x)))
@@ -357,7 +357,7 @@ fn picture(s: &mut Session, p: &Value) -> Result<Value> {
                 sh.kind = shape.kind.clone();
                 sh.xfrm = Some(rect);
                 sh.ph = phv.map(|mut p| {
-                    p.kind = deckcraft_model::PhType::Picture;
+                    p.kind = deckz_model::PhType::Picture;
                     p
                 });
                 sh.text = None;
@@ -434,7 +434,7 @@ fn chart(s: &mut Session, p: &Value) -> Result<Value> {
     if let Some(series) = p.get("series").and_then(Value::as_array) {
         c.series = series
             .iter()
-            .map(|sv| deckcraft_model::chart::Series {
+            .map(|sv| deckz_model::chart::Series {
                 name: sv.get("name").and_then(Value::as_str).unwrap_or("Series").to_string(),
                 values: sv.get("values").and_then(Value::as_array).map(|a| a.iter().map(Value::as_f64).collect()).unwrap_or_default(),
                 ..Default::default()
@@ -455,7 +455,7 @@ fn media(s: &mut Session, p: &Value, video: bool) -> Result<Value> {
     let (name, bytes) = media_bytes(p, cmd)?;
     let ct = content_type(&name, &bytes);
     let bytes = std::sync::Arc::new(bytes);
-    let info = deckcraft_media::probe(&bytes);
+    let info = deckz_media::probe(&bytes);
     let has_video = info.as_ref().is_ok_and(|i| i.video.is_some());
     let has_audio = info.as_ref().is_ok_and(|i| i.audio.is_some());
     match &info {
@@ -529,7 +529,7 @@ fn word_art(s: &mut Session, p: &Value) -> Result<Value> {
     let mut shape = new_text_box(Xfrm::new(size.width * 0.2, size.height * 0.4, size.width * 0.6, 80.0), text);
     if let Some(t) = shape.text.as_mut() {
         for para in &mut t.paragraphs {
-            para.props.align = Some(deckcraft_model::text::Align::Center);
+            para.props.align = Some(deckz_model::text::Align::Center);
             for r in &mut para.runs {
                 r.props.size = Some(54.0);
                 r.props.bold = Some(style % 2 == 1);
@@ -540,7 +540,7 @@ fn word_art(s: &mut Session, p: &Value) -> Result<Value> {
                     _ => SchemeSlot::Accent4,
                 })));
                 if style % 3 == 2 {
-                    r.props.outline = Some(deckcraft_model::Line::solid(ColorRef::scheme(SchemeSlot::Bg1), 1.0));
+                    r.props.outline = Some(deckz_model::Line::solid(ColorRef::scheme(SchemeSlot::Bg1), 1.0));
                 }
             }
         }
@@ -577,7 +577,7 @@ fn symbol(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn hyperlink(s: &mut Session, p: &Value) -> Result<Value> {
-    use deckcraft_model::text::{Action, Hyperlink};
+    use deckz_model::text::{Action, Hyperlink};
     // `display`: what a caret with nothing to link inserts, the address or the slide's title.
     let (action, display) = if let Some(u) = str_param(p, "url") {
         (Action::Url { url: u.to_string() }, u.strip_prefix("mailto:").unwrap_or(u).to_string())
@@ -600,7 +600,7 @@ fn hyperlink(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn action_button(s: &mut Session, p: &Value) -> Result<Value> {
-    use deckcraft_model::text::{Action, Hyperlink};
+    use deckz_model::text::{Action, Hyperlink};
     let kind = str_param(p, "kind").unwrap_or("custom");
     let (preset, action) = match kind {
         "back" | "previous" => ("actionButtonBackPrevious", Some(Action::PreviousSlide)),
@@ -655,9 +655,9 @@ fn chart_data(s: &mut Session, p: &Value) -> Result<Value> {
         .get("categories")
         .and_then(Value::as_array)
         .map(|a| a.iter().map(|v| v.as_str().map(String::from).unwrap_or_else(|| v.to_string())).collect());
-    let series: Option<Vec<deckcraft_model::chart::Series>> = p.get("series").and_then(Value::as_array).map(|a| {
+    let series: Option<Vec<deckz_model::chart::Series>> = p.get("series").and_then(Value::as_array).map(|a| {
         a.iter()
-            .map(|sv| deckcraft_model::chart::Series {
+            .map(|sv| deckz_model::chart::Series {
                 name: sv.get("name").and_then(Value::as_str).unwrap_or("Series").to_string(),
                 values: sv.get("values").and_then(Value::as_array).map(|v| v.iter().map(Value::as_f64).collect()).unwrap_or_default(),
                 ..Default::default()
@@ -784,7 +784,7 @@ fn smart_art(s: &mut Session, p: &Value) -> Result<Value> {
         let mut body = TextBody::from_text(items.get(i).map(String::as_str).unwrap_or(""));
         body.body.autofit = Some(AutoFit::Shrink { font_scale: 1.0, line_reduction: 0.0 });
         for para in &mut body.paragraphs {
-            para.props.align = Some(deckcraft_model::text::Align::Center);
+            para.props.align = Some(deckz_model::text::Align::Center);
             for r in &mut para.runs {
                 r.props.size = Some(20.0);
             }

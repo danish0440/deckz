@@ -284,7 +284,7 @@ impl Session {
         let st = self.doc()?;
         let Some(t) = st.selection.text.clone() else { return Ok(Value::Null) };
         let Some((r, c)) = t.cell else { return Ok(Value::Null) };
-        let Some(deckcraft_model::ShapeKind::Table(tb)) = st.shape(t.shape).map(|s| s.kind.clone()) else { return Ok(Value::Null) };
+        let Some(deckz_model::ShapeKind::Table(tb)) = st.shape(t.shape).map(|s| s.kind.clone()) else { return Ok(Value::Null) };
         let (nr, nc) = (tb.n_rows(), tb.n_cols());
         let idx = r * nc + c;
         if !back && idx + 1 >= nr * nc {

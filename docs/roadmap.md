@@ -1,8 +1,8 @@
-# DeckCraft roadmap: milestones and what's next
+# DeckZ roadmap: milestones and what's next
 
 > **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-10 · **Change:** minor (core-workflow alpha gate added; stage stays alpha; previous: major, created; milestones carried from the local execution plan, the beta plan built from gaps.md) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
 
-Forward-looking: where DeckCraft is going and in what order. The one-page summary is
+Forward-looking: where DeckZ is going and in what order. The one-page summary is
 [ROADMAP.md](../ROADMAP.md); every shortfall is in [gaps.md](gaps.md); numbers are in
 [target-app-parity.md](target-app-parity.md). Hours are Opus 5.5 agent wall-clock hours.
 
@@ -10,17 +10,17 @@ Forward-looking: where DeckCraft is going and in what order. The one-page summar
 
 What a typical PowerPoint user does every day, checked end to end on macOS, the main platform
 (craftrules `standards/progress-docs.md`, "The core-workflow gate"). Every workflow passes, so
-DeckCraft stays **alpha**. The "partial" rows don't block the workflow, but they are its weakest
+DeckZ stays **alpha**. The "partial" rows don't block the workflow, but they are its weakest
 points and lead the beta plan.
 
 | Core workflow | Works end to end? | Evidence | Hours to full pass |
 |---|---|---|---|
-| Build a deck from scratch (theme, layouts, titles and bullets, shapes, pictures from file), save, close and reopen it | yes | Commands for all of it; `.deckcraft` and `.pptx` round-trip tests (`crates/pptx/tests/roundtrip.rs`, `crates/format`); AutoRecover. Close discards edits without asking (#60, PR #75); image *paste* fails on Windows/Linux (#53), though insert-from-file works | 1–3 |
+| Build a deck from scratch (theme, layouts, titles and bullets, shapes, pictures from file), save, close and reopen it | yes | Commands for all of it; `.deckz` and `.pptx` round-trip tests (`crates/pptx/tests/roundtrip.rs`, `crates/format`); AutoRecover. Close discards edits without asking (#60, PR #75); image *paste* fails on Windows/Linux (#53), though insert-from-file works | 1–3 |
 | Open a colleague's `.pptx`, edit it, save it back as `.pptx` that PowerPoint opens | partial (not blocking) | The reader is lenient and keeps unknown objects. Files open in PowerPoint without repair (checked 2026-10-06). But only generated decks have been tested; text inside EMF/WMF pictures is missing; comment threads, media options and rewind are lost (#70, #74, #77) | 31–55 |
 | Present: full-screen show with transitions, animations, media, presenter view with notes, next slide and timer | yes | 48/48 transitions, 64 effects, triggers, builds, media playback, presenter window. Presenter view isn't placed on the second display automatically (drag it there) | 3–5 |
 | Add business content: tables, charts with their data, simple diagrams | partial (not blocking) | Tables with styles, merge/split, all D or P. Charts insert with the common types and edit data in the Chart Data dialog (P0 partial); SmartArt is basic (pre-drawn shapes) | 12–20 |
 | Share the deck: PDF of slides, notes or handouts; images | yes | `file.export` PDF with text layer, links, bookmarks, handouts 1–9; PNG/JPEG. Artwork is raster in the PDF; no direct print (print the PDF) | 10–16 |
-| Review: comments with replies, resolve, spelling | partial (not blocking) | Comments, replies and resolve work and survive `.deckcraft`; threads are flattened on `.pptx` save (#70); spelling is a small built-in list | 4–8 |
+| Review: comments with replies, resolve, spelling | partial (not blocking) | Comments, replies and resolve work and survive `.deckz`; threads are flattened on `.pptx` save (#70); spelling is a small built-in list | 4–8 |
 
 ## Current focus (2026-10-10)
 
@@ -88,7 +88,7 @@ From the local execution plan (`plan/execution-plan.md`, gitignored). Status as 
 
 ## History: the 2026-10-07 alpha checklist
 
-Before the craftrules stages existed, DeckCraft defined "alpha" as: install a signed build on
+Before the craftrules stages existed, DeckZ defined "alpha" as: install a signed build on
 macOS, Windows or Linux, make a real deck from scratch or from a PowerPoint file, present it with
 transitions, animations and media, save back to `.pptx`/PDF without losing work, and hit no crashes
 on common paths. On 2026-10-07 it was ~80% there with these blockers:
@@ -102,7 +102,7 @@ on common paths. On 2026-10-07 it was ~80% there with these blockers:
 | UI fidelity pass on the most-used ribbon groups and dialogs; first run | Partly (start-screen fixes #20, #49); beta item 11 |
 | Mascot app icon, README screenshots, user docs | App icon (with a scalable SVG, #29) and README screenshots in place; user docs open |
 
-By the standard's definitions DeckCraft is **alpha** (~55% ready); these blockers now feed the beta
+By the standard's definitions DeckZ is **alpha** (~55% ready); these blockers now feed the beta
 plan above.
 
 ## Revision history

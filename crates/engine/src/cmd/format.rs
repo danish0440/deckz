@@ -1,10 +1,10 @@
 //! Home ▸ Font and Paragraph, Format menu: character, paragraph and text box formatting, and
 //! the Format Painter.
 
-use deckcraft_model::edit as ed;
-use deckcraft_model::resolve;
-use deckcraft_model::text::{Align, Anchor, AutoFit, Bullet, Caps, ParaProps, RunProps, Spacing, Strike, TextDir};
-use deckcraft_model::{Effects, Fill, Line, Shape};
+use deckz_model::edit as ed;
+use deckz_model::resolve;
+use deckz_model::text::{Align, Anchor, AutoFit, Bullet, Caps, ParaProps, RunProps, Spacing, Strike, TextDir};
+use deckz_model::{Effects, Fill, Line, Shape};
 use serde_json::{Value, json};
 
 use super::text::{format_body, format_para, format_run};
@@ -314,8 +314,8 @@ fn clear(s: &mut Session, _p: &Value) -> Result<Value> {
 }
 fn text_shadow(s: &mut Session, p: &Value) -> Result<Value> {
     let v = on_param(p, Some(current_run(s).shadow.is_some()));
-    let sh = deckcraft_model::style::Shadow {
-        color: deckcraft_model::ColorRef::rgb(deckcraft_color::Rgba::BLACK).with(deckcraft_color::ColorTransform::Alpha(43000)),
+    let sh = deckz_model::style::Shadow {
+        color: deckz_model::ColorRef::rgb(deckz_color::Rgba::BLACK).with(deckz_color::ColorTransform::Alpha(43000)),
         blur: 3.0,
         dist: 2.0,
         dir: 45.0,
@@ -361,7 +361,7 @@ fn case(s: &mut Session, p: &Value) -> Result<Value> {
                 let mut pos = 0;
                 for r in &mut para.runs {
                     let len = r.char_len();
-                    if r.kind == deckcraft_model::text::RunKind::Text {
+                    if r.kind == deckz_model::text::RunKind::Text {
                         let rs = from.max(pos).saturating_sub(pos);
                         let re = to.min(pos + len).saturating_sub(pos);
                         if re > rs {
@@ -396,7 +396,7 @@ fn case(s: &mut Session, p: &Value) -> Result<Value> {
         if let Some(t) = sh.text.as_mut() {
             for para in &mut t.paragraphs {
                 for r in &mut para.runs {
-                    if r.kind == deckcraft_model::text::RunKind::Text {
+                    if r.kind == deckz_model::text::RunKind::Text {
                         r.text = ed::change_case(&r.text, &mode);
                     }
                 }
@@ -605,7 +605,7 @@ pub struct Painted {
     pub fill: Option<Fill>,
     pub line: Option<Line>,
     pub effects: Option<Effects>,
-    pub style: Option<deckcraft_model::ShapeStyle>,
+    pub style: Option<deckz_model::ShapeStyle>,
 }
 
 fn painter_pick(s: &mut Session, p: &Value) -> Result<Value> {

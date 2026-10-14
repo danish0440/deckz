@@ -2,8 +2,8 @@
 
 use std::sync::Arc;
 
-use deckcraft_model::text::TextBody;
-use deckcraft_model::{LayoutId, LayoutType, Presentation, Section, SlideId, defaults};
+use deckz_model::text::TextBody;
+use deckz_model::{LayoutId, LayoutType, Presentation, Section, SlideId, defaults};
 use serde_json::{Value, json};
 
 use super::*;
@@ -173,12 +173,12 @@ fn duplicate(s: &mut Session, p: &Value) -> Result<Value> {
                 .get(*i)
                 .map(|x| {
                     let mut v = vec![];
-                    deckcraft_model::walk(&x.shapes, &mut |sh, _| v.push(sh.id));
+                    deckz_model::walk(&x.shapes, &mut |sh, _| v.push(sh.id));
                     v
                 })
                 .unwrap_or_default();
             let mut new_shape_ids = vec![];
-            deckcraft_model::walk(&copy.shapes, &mut |sh, _| new_shape_ids.push(sh.id));
+            deckz_model::walk(&copy.shapes, &mut |sh, _| new_shape_ids.push(sh.id));
             for a in &mut copy.animations {
                 if let Some(pos) = old_ids.iter().position(|x| *x == a.shape) {
                     a.shape = new_shape_ids.get(pos).copied().unwrap_or(a.shape);
@@ -360,16 +360,16 @@ fn hide(s: &mut Session, p: &Value) -> Result<Value> {
 
 /// Re-map a slide's placeholders onto a new layout (content kept, matched by type/index).
 pub fn apply_layout(doc: &mut Presentation, index: usize, layout: LayoutId) -> Result<()> {
-    let lay_shapes: Vec<deckcraft_model::Shape> =
+    let lay_shapes: Vec<deckz_model::Shape> =
         doc.layout(layout).map(|(_, l)| l.shapes.clone()).ok_or_else(|| bad("slide.layout", "no such layout"))?;
     let mut fresh = vec![];
     for ls in lay_shapes.iter().filter(|x| x.ph.as_ref().is_some_and(|p| !p.kind.is_footer_kind())) {
-        let id = deckcraft_model::ShapeId(doc.alloc_id());
+        let id = deckz_model::ShapeId(doc.alloc_id());
         fresh.push((id, ls.clone()));
     }
     let slide = doc.slides.get_mut(index).ok_or_else(|| bad("slide.layout", "no slide"))?;
     let slide = Arc::make_mut(slide);
-    let mut old: Vec<deckcraft_model::Shape> = std::mem::take(&mut slide.shapes);
+    let mut old: Vec<deckz_model::Shape> = std::mem::take(&mut slide.shapes);
     let mut out = vec![];
     for (id, ls) in fresh {
         let Some(lph) = ls.ph.clone() else { continue };
@@ -389,13 +389,13 @@ pub fn apply_layout(doc: &mut Presentation, index: usize, layout: LayoutId) -> R
                 out.push(o);
             }
             None => {
-                out.push(deckcraft_model::Shape { id, name: ls.name.clone(), ph: Some(lph), text: Some(TextBody::default()), ..Default::default() })
+                out.push(deckz_model::Shape { id, name: ls.name.clone(), ph: Some(lph), text: Some(TextBody::default()), ..Default::default() })
             }
         }
     }
     // Leftover placeholders with content stay as they were (positioned); empty ones go.
     for o in old {
-        let empty_ph = o.ph.is_some() && o.text.as_ref().is_none_or(|t| t.is_empty()) && matches!(o.kind, deckcraft_model::ShapeKind::Shape);
+        let empty_ph = o.ph.is_some() && o.text.as_ref().is_none_or(|t| t.is_empty()) && matches!(o.kind, deckz_model::ShapeKind::Shape);
         if !empty_ph {
             out.push(o);
         }
@@ -574,7 +574,7 @@ fn from_outline(s: &mut Session, p: &Value) -> Result<Value> {
     let text = str_param(p, "text").unwrap_or("").to_string();
     s.edit(|doc, sel| {
         let before = doc.slides.len();
-        let n = deckcraft_format::outline_to_slides(doc, &text);
+        let n = deckz_format::outline_to_slides(doc, &text);
         // outline_to_slides appends; move them after the current slide.
         let at = (sel.slide + 1).min(before);
         let new: Vec<_> = doc.slides.drain(before..).collect();

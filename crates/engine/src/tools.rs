@@ -3,8 +3,8 @@
 
 use std::sync::Arc;
 
-use deckcraft_geom::{Affine, Point, Rect, Vec2, Xfrm};
-use deckcraft_model::{Shape, ShapeId, ShapeKind};
+use deckz_geom::{Affine, Point, Rect, Vec2, Xfrm};
+use deckz_model::{Shape, ShapeId, ShapeKind};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
@@ -55,7 +55,7 @@ pub enum ToolKind {
     /// Ink: pen (`pen`, `highlighter`) or `eraser`.
     Ink {
         mode: String,
-        color: deckcraft_color::Rgba,
+        color: deckz_color::Rgba,
         width: f64,
     },
 }
@@ -233,7 +233,7 @@ impl Session {
                     }
                     continue;
                 }
-                let geo = deckcraft_render::shape_geometry(sh, x.w, x.h);
+                let geo = deckz_render::shape_geometry(sh, x.w, x.h);
                 for hd in &geo.handles {
                     if (x.affine() * hd.pos - p).hypot() <= tol * 1.6 {
                         return Some(Hit::Adjust { id: *id, index: hd.index });
@@ -286,7 +286,7 @@ impl Session {
                     return Ok(Value::Null);
                 }
                 self.tool.hover = self.hit_test(p, tol);
-                let line_tool = matches!(&self.tool.kind, ToolKind::Shape { preset } if deckcraft_geom::preset::is_line_like(preset));
+                let line_tool = matches!(&self.tool.kind, ToolKind::Shape { preset } if deckz_geom::preset::is_line_like(preset));
                 if line_tool {
                     self.update_sites(p, tol, None);
                 } else {
@@ -501,7 +501,7 @@ impl Session {
                 self.edit(|doc, sel| {
                     let list = crate::shapes_mut(doc, sel).ok_or_else(|| cmd::bad("move", "no slide"))?;
                     for (id, o) in &origs2 {
-                        if let Some(sh) = deckcraft_model::find_shape_mut(list, *id) {
+                        if let Some(sh) = deckz_model::find_shape_mut(list, *id) {
                             sh.xfrm = Some(Xfrm { x: o.x + d.x, y: o.y + d.y, ..*o });
                         }
                     }
@@ -572,7 +572,7 @@ impl Session {
                 let st = self.doc()?;
                 let Some(sh) = st.shape(id).cloned() else { return Ok(Value::Null) };
                 let local = orig.affine().inverse() * p;
-                let geo = deckcraft_render::shape_geometry(&sh, orig.w, orig.h);
+                let geo = deckz_render::shape_geometry(&sh, orig.w, orig.h);
                 let Some(h) = geo.handles.iter().find(|h| h.index == index) else { return Ok(Value::Null) };
                 let free2d = matches!(sh.geom.preset_name(), Some(n) if n.contains("Callout") && !n.contains("Arrow"));
                 let vals: Vec<(usize, f64)> = if free2d {
@@ -584,10 +584,10 @@ impl Session {
                 };
                 self.edit(|doc, sel| {
                     let list = crate::shapes_mut(doc, sel).ok_or_else(|| cmd::bad("adjust", "no slide"))?;
-                    if let Some(sh) = deckcraft_model::find_shape_mut(list, id)
-                        && let deckcraft_model::Geom::Preset { name, adj } = &mut sh.geom
+                    if let Some(sh) = deckz_model::find_shape_mut(list, id)
+                        && let deckz_model::Geom::Preset { name, adj } = &mut sh.geom
                     {
-                        let defaults = deckcraft_geom::preset::info(name).map(|x| x.defaults).unwrap_or(&[]);
+                        let defaults = deckz_geom::preset::info(name).map(|x| x.defaults).unwrap_or(&[]);
                         for (i, v) in &vals {
                             while adj.len() <= *i {
                                 let k = adj.len();
@@ -605,7 +605,7 @@ impl Session {
                 self.tool.marquee = Some(Rect::from_points(start, p));
             }
             Drag::Create { start } => {
-                let line = matches!(&self.tool.kind, ToolKind::Shape { preset } if deckcraft_geom::preset::is_line_like(preset));
+                let line = matches!(&self.tool.kind, ToolKind::Shape { preset } if deckz_geom::preset::is_line_like(preset));
                 let x = if line {
                     let mut q = if mods.shift { constrain_45(start, p) } else { p };
                     if let Some((_, _, at)) = self.update_sites(q, tol, None) {
@@ -709,7 +709,7 @@ impl Session {
                 let dragged = (p - start).hypot() > 2.0;
                 let res = match &kind {
                     ToolKind::Shape { preset } => {
-                        let line = deckcraft_geom::preset::is_line_like(preset);
+                        let line = deckz_geom::preset::is_line_like(preset);
                         let rect = match preview.filter(|_| dragged) {
                             Some(x) => x,
                             None if line => Xfrm::new(start.x, start.y, 72.0, 0.0),
@@ -805,7 +805,7 @@ impl Session {
                         let x = xfrm_of(&st.doc, &st.selection, &sh);
                         let local = x.affine().inverse() * p;
                         if let ShapeKind::Table(t) = &sh.kind {
-                            let cell = deckcraft_render_cell(t, &table_rows(st, t), local);
+                            let cell = deckz_render_cell(t, &table_rows(st, t), local);
                             return self.execute("text.edit", &json!({"id": id, "cell": [cell.0, cell.1]}));
                         }
                         Ok(Value::Null)
@@ -878,7 +878,7 @@ impl Session {
         });
         self.edit(|doc, sel| {
             let list = crate::shapes_mut(doc, sel).ok_or_else(|| cmd::bad("tool", "no slide"))?;
-            if let Some(sh) = deckcraft_model::find_shape_mut(list, id) {
+            if let Some(sh) = deckz_model::find_shape_mut(list, id) {
                 sh.xfrm = Some(x);
                 if let ShapeKind::Table(t) = &mut sh.kind {
                     // Tables resize their columns and rows proportionally.
@@ -903,7 +903,7 @@ impl Session {
         self.execute("shape.setBounds", &json!({"id": id, "x": x.x, "y": x.y, "w": x.w, "h": x.h}))?;
         if x.flip_h || x.flip_v {
             self.edit(|doc, sel| {
-                if let Some(sh) = crate::shapes_mut(doc, sel).and_then(|l| deckcraft_model::find_shape_mut(l, id))
+                if let Some(sh) = crate::shapes_mut(doc, sel).and_then(|l| deckz_model::find_shape_mut(l, id))
                     && let Some(xx) = sh.xfrm.as_mut()
                 {
                     xx.flip_h = x.flip_h;
@@ -997,14 +997,14 @@ impl Session {
             let rr = r + Vec2::new(d, 0.0);
             guides.push(Guide { vertical: true, pos: x, from: b.y0.min(rr.y0), to: b.y1.max(rr.y1) });
         } else if self.prefs.snap_to_grid {
-            off.x = deckcraft_geom::snap(r.x0, self.prefs.grid_spacing) - r.x0;
+            off.x = deckz_geom::snap(r.x0, self.prefs.grid_spacing) - r.x0;
         }
         if let Some((d, y, b)) = best_y {
             off.y = d;
             let rr = r + Vec2::new(0.0, d);
             guides.push(Guide { vertical: false, pos: y, from: b.x0.min(rr.x0), to: b.x1.max(rr.x1) });
         } else if self.prefs.snap_to_grid {
-            off.y = deckcraft_geom::snap(r.y0, self.prefs.grid_spacing) - r.y0;
+            off.y = deckz_geom::snap(r.y0, self.prefs.grid_spacing) - r.y0;
         }
         (off, guides)
     }
@@ -1042,7 +1042,7 @@ impl Session {
 
     fn add_ink(&mut self, points: Vec<(f64, f64, f32)>) -> Result<Value> {
         let ToolKind::Ink { mode, color, width } = self.tool.kind.clone() else { return Ok(Value::Null) };
-        let stroke = deckcraft_model::InkStroke { points, color, width, highlighter: mode == "highlighter" };
+        let stroke = deckz_model::InkStroke { points, color, width, highlighter: mode == "highlighter" };
         // Strokes join the slide's ink layer (one ink shape per slide).
         let existing = self.doc()?.shapes().iter().rev().find(|s| matches!(s.kind, ShapeKind::Ink { .. })).map(|s| s.id);
         self.edit(|doc, sel| {
@@ -1063,7 +1063,7 @@ impl Session {
                 }
             };
             let list = crate::shapes_mut(doc, sel).ok_or_else(|| cmd::bad("ink", "no slide"))?;
-            if let Some(sh) = deckcraft_model::find_shape_mut(list, id)
+            if let Some(sh) = deckz_model::find_shape_mut(list, id)
                 && let ShapeKind::Ink { strokes } = &mut sh.kind
             {
                 strokes.push(stroke);
@@ -1079,7 +1079,7 @@ impl Session {
         let sel_before = st.selection.clone();
         self.edit(|doc, sel| {
             let list = crate::shapes_mut(doc, sel).ok_or_else(|| cmd::bad("ink", "no slide"))?;
-            if let Some(sh) = deckcraft_model::find_shape_mut(list, ink)
+            if let Some(sh) = deckz_model::find_shape_mut(list, ink)
                 && let ShapeKind::Ink { strokes } = &mut sh.kind
             {
                 strokes.retain(|s| !s.points.iter().any(|(x, y, _)| (Point::new(*x, *y) - p).hypot() <= tol * 2.0 + s.width));
@@ -1214,7 +1214,7 @@ fn hit_shape(st: &crate::DocState, sh: &Shape, p: Point, tol: f64) -> Option<Hit
         ShapeKind::Group { children, child } => {
             // A group is hit when any child is hit; the group is what gets selected.
             let ch = Rect::new(child.x, child.y, child.x + child.w, child.y + child.h);
-            let m = deckcraft_geom::group_child_affine(&x, ch);
+            let m = deckz_geom::group_child_affine(&x, ch);
             let q = m.inverse() * p;
             for c in children.iter().rev() {
                 if let Some(cx) = c.xfrm {
@@ -1236,9 +1236,9 @@ fn hit_shape(st: &crate::DocState, sh: &Shape, p: Point, tol: f64) -> Option<Hit
         }
         _ => {
             if sh.is_line() {
-                let geo = deckcraft_render::shape_geometry(sh, x.w, x.h);
+                let geo = deckz_render::shape_geometry(sh, x.w, x.h);
                 let lw = sh.line.as_ref().and_then(|l| l.width).unwrap_or(1.0);
-                if deckcraft_geom::near_path(&geo.outline(), local, tol.max(lw)) {
+                if deckz_geom::near_path(&geo.outline(), local, tol.max(lw)) {
                     return Some(Hit::Shape { id: sh.id, text: false });
                 }
                 return None;
@@ -1249,11 +1249,11 @@ fn hit_shape(st: &crate::DocState, sh: &Shape, p: Point, tol: f64) -> Option<Hit
             }
             let has_text = matches!(sh.kind, ShapeKind::Shape) && (sh.text.as_ref().is_some_and(|t| !t.is_empty()) || sh.ph.is_some() || sh.text_box);
             // Empty interiors of unfilled, text-less shapes don't catch clicks.
-            let filled = !matches!(sh.fill, Some(deckcraft_model::Fill::None)) || sh.style.is_some();
-            let geo = deckcraft_render::shape_geometry(sh, x.w, x.h);
+            let filled = !matches!(sh.fill, Some(deckz_model::Fill::None)) || sh.style.is_some();
+            let geo = deckz_render::shape_geometry(sh, x.w, x.h);
             let in_geo = {
-                use deckcraft_geom::KurboShape;
-                geo.outline().winding(local) != 0 || deckcraft_geom::near_path(&geo.outline(), local, tol)
+                use deckz_geom::KurboShape;
+                geo.outline().winding(local) != 0 || deckz_geom::near_path(&geo.outline(), local, tol)
             };
             if has_text
                 || sh.ph.is_some()
@@ -1262,7 +1262,7 @@ fn hit_shape(st: &crate::DocState, sh: &Shape, p: Point, tol: f64) -> Option<Hit
                     ShapeKind::Picture { .. } | ShapeKind::Table(_) | ShapeKind::Chart(_) | ShapeKind::Media(_) | ShapeKind::Opaque { .. }
                 )
                 || (filled && in_geo)
-                || deckcraft_geom::near_path(&geo.outline(), local, tol)
+                || deckz_geom::near_path(&geo.outline(), local, tol)
             {
                 return Some(Hit::Shape { id: sh.id, text: has_text || matches!(sh.kind, ShapeKind::Shape) });
             }
@@ -1278,8 +1278,8 @@ pub fn text_pos(st: &crate::DocState, sh: &Shape, p: Point) -> (usize, usize) {
     match cmd::text::layout_for(st, &t) {
         Some(l) => {
             // The text's own transform: flips don't mirror text, vertical text is turned.
-            let tr = deckcraft_render::shape_geometry(sh, x.w, x.h).text_rect;
-            let local = deckcraft_render::text_transform(x.affine(), tr, l.rotation).inverse() * p;
+            let tr = deckz_render::shape_geometry(sh, x.w, x.h).text_rect;
+            let local = deckz_render::text_transform(x.affine(), tr, l.rotation).inverse() * p;
             let h = l.hit(local);
             (h.para, h.ch)
         }
@@ -1288,12 +1288,12 @@ pub fn text_pos(st: &crate::DocState, sh: &Shape, p: Point) -> (usize, usize) {
 }
 
 /// Row heights of table `t` as drawn: rows grow to fit their text.
-pub fn table_rows(st: &crate::DocState, t: &deckcraft_model::Table) -> Vec<f64> {
+pub fn table_rows(st: &crate::DocState, t: &deckz_model::Table) -> Vec<f64> {
     cmd::table_drawn_heights(&st.doc, &st.selection, t)
 }
 
 /// Which table cell contains a table-local point (`heights` from [`table_rows`]).
-fn deckcraft_render_cell(t: &deckcraft_model::Table, heights: &[f64], p: Point) -> (usize, usize) {
+fn deckz_render_cell(t: &deckz_model::Table, heights: &[f64], p: Point) -> (usize, usize) {
     let mut y = 0.0;
     let mut row = heights.len().saturating_sub(1);
     for (i, h) in heights.iter().enumerate() {

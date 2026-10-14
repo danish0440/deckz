@@ -1,8 +1,8 @@
 //! Ribbon widgets: large and small buttons, split buttons, groups, dropdowns, spinners, the colour
 //! picker and galleries.
 
-use deckcraft_color::{ColorScheme, Rgba, SchemeSlot};
-use deckcraft_model::ColorRef;
+use deckz_color::{ColorScheme, Rgba, SchemeSlot};
+use deckz_model::ColorRef;
 use egui::{Align2, Color32, CornerRadius, Rect, Response, Sense, Stroke, Ui, Vec2, pos2, vec2};
 
 use crate::icons::{self, Icon};
@@ -294,9 +294,9 @@ pub fn color_grid(ui: &mut Ui, scheme: &ColorScheme, none_label: Option<&str>) -
         for row in 0..5 {
             for slot in slots {
                 let base = scheme.get(slot);
-                let vars = deckcraft_color::theme_variants(base);
+                let vars = deckz_color::theme_variants(base);
                 let Some((mods, label)) = vars.get(row) else { continue };
-                let c = deckcraft_color::apply(base, mods);
+                let c = deckz_color::apply(base, mods);
                 if sw(ui, c, label) {
                     let alias = match slot {
                         SchemeSlot::Lt1 => SchemeSlot::Bg1,
@@ -317,7 +317,7 @@ pub fn color_grid(ui: &mut Ui, scheme: &ColorScheme, none_label: Option<&str>) -
     ui.label(egui::RichText::new("Standard Colors").font(theme::bold(12.0)));
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = 3.0;
-        for (c, name) in deckcraft_color::STANDARD_COLORS {
+        for (c, name) in deckz_color::STANDARD_COLORS {
             if sw(ui, c, name) {
                 out = Some(Some(ColorRef::rgb(c)));
             }
@@ -463,7 +463,7 @@ mod tests {
     #[test]
     fn the_hex_field_keeps_the_color_menu_open() {
         let picked = RefCell::new(None);
-        let scheme = deckcraft_model::Theme::default().colors;
+        let scheme = deckz_model::Theme::default().colors;
         let mut harness = egui_kittest::Harness::builder().with_size(vec2(400.0, 500.0)).build_ui(|ui| {
             theme::install_fonts(ui.ctx());
             let r = ui.button("Pick");

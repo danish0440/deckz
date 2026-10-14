@@ -6,9 +6,9 @@
 //! slide are drawn on the area around it (the pasteboard), where they can be selected and moved;
 //! the slide show, exports and thumbnails clip to the slide.
 
-use deckcraft_engine::tools::{Hit, box_handles};
-use deckcraft_engine::{Mods, PointerEvent, PointerKind, Target, ToolKind};
-use deckcraft_geom::{Point, Xfrm};
+use deckz_engine::tools::{Hit, box_handles};
+use deckz_engine::{Mods, PointerEvent, PointerKind, Target, ToolKind};
+use deckz_geom::{Point, Xfrm};
 use egui::{Align2, Color32, CornerRadius, Pos2, Rect, Sense, Stroke, Ui, pos2, vec2};
 use serde_json::json;
 
@@ -172,13 +172,13 @@ pub fn show(app: &mut SlideApp, ui: &mut Ui) {
 
 /// The canvas `avail` in texture pixels (`pixel`: one pixel's size in points) from the slide's
 /// top-left corner.
-fn visible_region(avail: Rect, slide: Rect, pixel: egui::Vec2) -> deckcraft_render::Region {
+fn visible_region(avail: Rect, slide: Rect, pixel: egui::Vec2) -> deckz_render::Region {
     let px = |v: f32, k: f32| if v.is_finite() && k > 0.0 { (v / k) as f64 } else { 0.0 };
     let (x0, y0) = (px(avail.min.x - slide.min.x, pixel.x).floor(), px(avail.min.y - slide.min.y, pixel.y).floor());
     let (x1, y1) = (px(avail.max.x - slide.min.x, pixel.x).ceil(), px(avail.max.y - slide.min.y, pixel.y).ceil());
     let lim = i32::MAX as f64 / 4.0;
     let (x0, y0) = (x0.clamp(-lim, lim), y0.clamp(-lim, lim));
-    deckcraft_render::Region {
+    deckz_render::Region {
         x: x0 as i32,
         y: y0 as i32,
         w: (x1 - x0).clamp(1.0, u32::MAX as f64) as u32,
@@ -195,11 +195,11 @@ pub fn ime_area(app: &SlideApp, xf: Xf) -> Option<Rect> {
         if ts.notes {
             return None;
         }
-        if let Some((top, bot)) = deckcraft_engine::cmd::text::caret_line(st, ts) {
+        if let Some((top, bot)) = deckz_engine::cmd::text::caret_line(st, ts) {
             return Some(Rect::from_two_pos(xf.to_screen(top), xf.to_screen(bot)).expand2(vec2(1.0, 0.0)));
         }
         let sh = st.shape(ts.shape)?;
-        return Some(screen_rect(xf, &deckcraft_engine::cmd::xfrm_of(&st.doc, &st.selection, sh)));
+        return Some(screen_rect(xf, &deckz_engine::cmd::xfrm_of(&st.doc, &st.selection, sh)));
     }
     if st.selection.shapes.len() != 1 {
         return None;
@@ -208,7 +208,7 @@ pub fn ime_area(app: &SlideApp, xf: Xf) -> Option<Rect> {
     if sh.is_line() {
         return None;
     }
-    Some(screen_rect(xf, &deckcraft_engine::cmd::xfrm_of(&st.doc, &st.selection, sh)))
+    Some(screen_rect(xf, &deckz_engine::cmd::xfrm_of(&st.doc, &st.selection, sh)))
 }
 
 /// Turn the input method on for the slide while it takes typing, with its candidate window at
@@ -306,19 +306,19 @@ fn media_bar(app: &mut SlideApp, ui: &mut Ui, xf: Xf) {
 
 fn master_tex(
     ctx: &egui::Context,
-    doc: &deckcraft_model::Presentation,
+    doc: &deckz_model::Presentation,
     master: usize,
     layout: Option<usize>,
     px: (u32, u32),
-    visible: deckcraft_render::Region,
-) -> Option<(egui::TextureHandle, deckcraft_render::Region)> {
+    visible: deckz_render::Region,
+) -> Option<(egui::TextureHandle, deckz_render::Region)> {
     let scale = px.0 as f64 / doc.slide_size.width.max(1.0);
-    let region = deckcraft_render::pasteboard_region(px, scale, deckcraft_render::layout_extent(doc, master, layout), visible);
-    let img = deckcraft_render::render_layout(
+    let region = deckz_render::pasteboard_region(px, scale, deckz_render::layout_extent(doc, master, layout), visible);
+    let img = deckz_render::render_layout(
         doc,
         master,
         layout,
-        &deckcraft_render::RenderOpts { scale, edit: true, offset: region.offset(), size: Some(region.size()), ..Default::default() },
+        &deckz_render::RenderOpts { scale, edit: true, offset: region.offset(), size: Some(region.size()), ..Default::default() },
     );
     Some((ctx.load_texture("master-canvas", crate::textures::to_color_image(&img, false), egui::TextureOptions::LINEAR), region))
 }
@@ -435,13 +435,13 @@ fn overlays(app: &mut SlideApp, ui: &Ui, painter: &egui::Painter, xf: Xf, t: &To
     let editing = st.selection.text.clone();
     for id in &st.selection.shapes {
         let Some(sh) = st.shape(*id) else { continue };
-        let x = deckcraft_engine::cmd::xfrm_of(&st.doc, &st.selection, sh);
+        let x = deckz_engine::cmd::xfrm_of(&st.doc, &st.selection, sh);
         let a = x.affine();
         let corners = [Point::new(0.0, 0.0), Point::new(x.w, 0.0), Point::new(x.w, x.h), Point::new(0.0, x.h)].map(|q| xf.to_screen(a * q));
         if sh.is_line() {
             let (p0, p1) = (xf.to_screen(a * Point::new(0.0, 0.0)), xf.to_screen(a * Point::new(x.w, x.h)));
             let glued = match sh.kind {
-                deckcraft_model::ShapeKind::Connector { start, end } => [start.is_some(), end.is_some()],
+                deckz_model::ShapeKind::Connector { start, end } => [start.is_some(), end.is_some()],
                 _ => [false, false],
             };
             for (q, g) in [p0, p1].into_iter().zip(glued) {
@@ -479,7 +479,7 @@ fn overlays(app: &mut SlideApp, ui: &Ui, painter: &egui::Painter, xf: Xf, t: &To
             for h in hs {
                 painter.circle(xf.to_screen(h), 4.5, t.handle_fill, Stroke::new(1.0, t.handle_stroke));
             }
-            let geo = deckcraft_render::shape_geometry(sh, x.w, x.h);
+            let geo = deckz_render::shape_geometry(sh, x.w, x.h);
             for hd in &geo.handles {
                 let q = xf.to_screen(a * hd.pos);
                 painter.circle(q, 4.5, Color32::from_rgb(0xFF, 0xD2, 0x3F), Stroke::new(1.0, Color32::from_rgb(0x8A, 0x6A, 0x00)));
@@ -491,26 +491,26 @@ fn overlays(app: &mut SlideApp, ui: &Ui, painter: &egui::Painter, xf: Xf, t: &To
         && !ts.notes
         && ts.cell.is_none()
         && let Some(sh) = st.shape(ts.shape)
-        && let Some(l) = deckcraft_engine::cmd::text::layout_for(st, ts)
+        && let Some(l) = deckz_engine::cmd::text::layout_for(st, ts)
     {
-        let x = deckcraft_engine::cmd::xfrm_of(&st.doc, &st.selection, sh);
+        let x = deckz_engine::cmd::xfrm_of(&st.doc, &st.selection, sh);
         // Where the text is drawn: flips don't mirror it, vertical text is turned.
-        let tr = deckcraft_render::shape_geometry(sh, x.w, x.h).text_rect;
-        let m = deckcraft_render::text_transform(x.affine(), tr, l.rotation);
+        let tr = deckz_render::shape_geometry(sh, x.w, x.h).text_rect;
+        let m = deckz_render::text_transform(x.affine(), tr, l.rotation);
         let (s0, s1) = ts.ordered();
-        for r in l.selection_rects(deckcraft_text::Pos { para: s0.0, ch: s0.1 }, deckcraft_text::Pos { para: s1.0, ch: s1.1 }) {
+        for r in l.selection_rects(deckz_text::Pos { para: s0.0, ch: s0.1 }, deckz_text::Pos { para: s1.0, ch: s1.1 }) {
             let pts = [Point::new(r.x0, r.y0), Point::new(r.x1, r.y0), Point::new(r.x1, r.y1), Point::new(r.x0, r.y1)].map(|q| xf.to_screen(m * q));
             painter.add(egui::Shape::convex_polygon(pts.to_vec(), t.text_selection, Stroke::NONE));
         }
         // An input method's composition: underlined in place, thicker under the part being converted.
-        for (a, b, thick) in deckcraft_engine::cmd::text::composition_underlines(st) {
+        for (a, b, thick) in deckz_engine::cmd::text::composition_underlines(st) {
             painter.line_segment([xf.to_screen(a), xf.to_screen(b)], Stroke::new(if thick { 2.0 } else { 1.0 }, t.caret));
         }
         if !ts.is_range() {
             let blink = (ui.input(|i| i.time) * 1.6).fract() < 0.6;
             ui.ctx().request_repaint_after(std::time::Duration::from_millis(300));
             // An empty placeholder shows the caret where typing begins too.
-            if blink && let Some((top, bot)) = deckcraft_engine::cmd::text::caret_line(st, ts) {
+            if blink && let Some((top, bot)) = deckz_engine::cmd::text::caret_line(st, ts) {
                 painter.line_segment([xf.to_screen(top), xf.to_screen(bot)], Stroke::new(1.5, t.caret));
             }
         }
@@ -518,10 +518,10 @@ fn overlays(app: &mut SlideApp, ui: &Ui, painter: &egui::Painter, xf: Xf, t: &To
     // Table cell editing: outline the cell.
     if let Some(ts) = &editing
         && let (Some((r, c)), Some(sh)) = (ts.cell, st.shape(ts.shape))
-        && let deckcraft_model::ShapeKind::Table(tb) = &sh.kind
+        && let deckz_model::ShapeKind::Table(tb) = &sh.kind
     {
-        let x = deckcraft_engine::cmd::xfrm_of(&st.doc, &st.selection, sh);
-        let heights = deckcraft_engine::tools::table_rows(st, tb);
+        let x = deckz_engine::cmd::xfrm_of(&st.doc, &st.selection, sh);
+        let heights = deckz_engine::tools::table_rows(st, tb);
         let y0: f64 = heights.iter().take(r).sum();
         let x0: f64 = tb.cols.iter().take(c).sum();
         let (w, h) = (tb.cols.get(c).copied().unwrap_or(0.0), heights.get(r).copied().unwrap_or(0.0));
@@ -552,11 +552,11 @@ fn overlays(app: &mut SlideApp, ui: &Ui, painter: &egui::Painter, xf: Xf, t: &To
     let path = &app.session.tool.path_preview;
     if path.len() > 1 {
         let pts: Vec<Point> = if app.session.tool.path_smooth && path.len() > 2 {
-            let d = deckcraft_engine::cmd::shape::freeform_path(path, false, true);
+            let d = deckz_engine::cmd::shape::freeform_path(path, false, true);
             let mut v = vec![];
-            let bp = deckcraft_render::parse_path(&d);
-            deckcraft_geom::preset_flatten(&bp, &mut |el| match el {
-                deckcraft_geom::PathEl::MoveTo(q) | deckcraft_geom::PathEl::LineTo(q) => v.push(q),
+            let bp = deckz_render::parse_path(&d);
+            deckz_geom::preset_flatten(&bp, &mut |el| match el {
+                deckz_geom::PathEl::MoveTo(q) | deckz_geom::PathEl::LineTo(q) => v.push(q),
                 _ => {}
             });
             v
@@ -608,7 +608,7 @@ fn draw_preview(app: &SlideApp, p: &egui::Painter, xf: Xf, x: Xfrm, t: &Tokens) 
         ToolKind::Shape { preset } => preset.clone(),
         _ => "rect".into(),
     };
-    if deckcraft_geom::preset::is_line_like(&preset) {
+    if deckz_geom::preset::is_line_like(&preset) {
         let a = x.affine();
         p.line_segment([xf.to_screen(a * Point::new(0.0, 0.0)), xf.to_screen(a * Point::new(x.w, x.h))], Stroke::new(1.5, t.accent));
         return;

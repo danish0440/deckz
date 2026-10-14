@@ -208,7 +208,7 @@ impl Backstage {
 /// Save As and Change File Type: (id for [`SlideApp::export_as`], label, detail).
 pub const SAVE_TYPES: [(&str, &str, &str); 6] = [
     ("pptx", "PowerPoint Presentation (*.pptx)", "Opens in PowerPoint and other presentation apps"),
-    ("deckcraft", "DeckCraft Presentation (*.deckcraft)", "DeckCraft's own format: everything is kept"),
+    ("deckz", "DeckZ Presentation (*.deckz)", "DeckZ's own format: everything is kept"),
     ("pdf", "PDF (*.pdf)", "A fixed copy that keeps its layout on any device"),
     ("outline", "Outline (*.txt)", "The slide titles and bullet text as plain text"),
     ("png", "PNG Picture (*.png)", "The current slide as a picture"),
@@ -269,7 +269,7 @@ fn act(app: &mut SlideApp, nav: Nav, current: Page) -> Option<Page> {
 /// The File tab's own keys: Esc goes back to the presentation; Up and Down walk the side menu
 /// (a page shows as soon as it has the focus, as in PowerPoint); Enter or Space runs the focused
 /// action. True when the key was used.
-pub fn key(app: &mut SlideApp, key: Key, mods: deckcraft_engine::Mods) -> bool {
+pub fn key(app: &mut SlideApp, key: Key, mods: deckz_engine::Mods) -> bool {
     if mods.cmd || mods.alt || mods.shift {
         return false;
     }
@@ -471,7 +471,7 @@ fn search(ui: &mut Ui, query: &mut String, hint: &str, width: f32) -> bool {
 }
 
 /// A new-presentation tile: a theme preview drawn in code (or a blank slide) over its name.
-fn tile(ui: &mut Ui, label: &str, theme: Option<&deckcraft_model::Theme>, big: bool) -> egui::Response {
+fn tile(ui: &mut Ui, label: &str, theme: Option<&deckz_model::Theme>, big: bool) -> egui::Response {
     let t = Tokens::get(ui.ctx());
     let thumb_w = if big { 200.0 } else { 160.0 };
     let (rect, resp) = ui.allocate_exact_size(vec2(thumb_w + 16.0, thumb_w * 9.0 / 16.0 + 44.0), Sense::click());
@@ -500,8 +500,8 @@ fn tile(ui: &mut Ui, label: &str, theme: Option<&deckcraft_model::Theme>, big: b
 /// `blank`); at most `limit` theme tiles.
 fn new_tiles(app: &mut SlideApp, ui: &mut Ui, query: &str, limit: usize, blank: bool) {
     let q = query.trim().to_lowercase();
-    let themes: Vec<deckcraft_model::Theme> =
-        deckcraft_model::theme::builtin_themes().into_iter().filter(|th| q.is_empty() || th.name.to_lowercase().contains(&q)).collect();
+    let themes: Vec<deckz_model::Theme> =
+        deckz_model::theme::builtin_themes().into_iter().filter(|th| q.is_empty() || th.name.to_lowercase().contains(&q)).collect();
     let sample = q.is_empty() || "sample deck northern lights".contains(&q);
     if themes.is_empty() && !sample {
         dim(ui, &format!("No themes match “{}”.", query.trim()));
@@ -523,9 +523,9 @@ fn new_tiles(app: &mut SlideApp, ui: &mut Ui, query: &str, limit: usize, blank: 
             shown += 1;
         }
         if sample && shown < limit {
-            let th = deckcraft_model::theme::builtin_themes().into_iter().find(|t| t.name == "DeckCraft");
+            let th = deckz_model::theme::builtin_themes().into_iter().find(|t| t.name == "DeckZ");
             if tile(ui, "Sample deck: Northern Lights", th.as_ref(), false).clicked()
-                && let Err(e) = deckcraft_engine::sample::open_sample(&mut app.session)
+                && let Err(e) = deckz_engine::sample::open_sample(&mut app.session)
             {
                 app.set_status(e.to_string());
             }
@@ -627,14 +627,14 @@ fn task(ui: &mut Ui, icon: Icon, button: &str, title: &str, detail: &str, enable
 
 // ---------------------------------------------------------------- pages
 
-/// Home: DeckCraft's mark, new presentations (the first themes, with a link to New) and recent
+/// Home: DeckZ's mark, new presentations (the first themes, with a link to New) and recent
 /// presentations (with a link to Open). The same page is the start screen.
 fn home(app: &mut SlideApp, ui: &mut Ui, bs: &mut Backstage, out: &mut Outcome) {
     let t = Tokens::get(ui.ctx());
     ui.horizontal(|ui| {
         let (r, _) = ui.allocate_exact_size(vec2(36.0, 36.0), Sense::hover());
         crate::dialogs::paint_logo(ui.painter(), r);
-        ui.label(RichText::new("DeckCraft").font(theme::bold(24.0)).color(t.text));
+        ui.label(RichText::new("DeckZ").font(theme::bold(24.0)).color(t.text));
     });
     ui.add_space(18.0);
     ui.horizontal(|ui| {
@@ -665,7 +665,7 @@ fn home(app: &mut SlideApp, ui: &mut Ui, bs: &mut Backstage, out: &mut Outcome) 
         });
     }
     ui.add_space(30.0);
-    ui.hyperlink_to("Join the ArtCraft community on Discord", deckcraft_engine::links::DISCORD);
+    ui.hyperlink_to("Join the community on GitHub", deckz_engine::links::DISCORD);
 }
 
 /// New: a blank presentation, then every theme with a search box.
@@ -824,7 +824,7 @@ pub fn format_bytes(b: u64) -> String {
 }
 
 /// Save As: the file type, then the system Save dialog (desktop) or a download (web). A
-/// presentation saved as .pptx or .deckcraft takes the new file; the other types are copies.
+/// presentation saved as .pptx or .deckz takes the new file; the other types are copies.
 fn save_as(app: &mut SlideApp, ui: &mut Ui, bs: &mut Backstage, out: &mut Outcome) {
     let t = Tokens::get(ui.ctx());
     let (title, path) = app.session.active().map(|d| (d.title(), d.path.clone())).unwrap_or_default();
@@ -845,7 +845,7 @@ fn save_as(app: &mut SlideApp, ui: &mut Ui, bs: &mut Backstage, out: &mut Outcom
         let save = ui.add(egui::Button::new(RichText::new(label).color(t.accent_text)).fill(t.accent).min_size(vec2(84.0, 26.0)));
         if save.on_hover_text(if web { "Download the file" } else { "Choose where to save" }).clicked() {
             let fmt = bs.file_type;
-            let done = if matches!(fmt, "pptx" | "deckcraft") {
+            let done = if matches!(fmt, "pptx" | "deckz") {
                 let before = app.session.active().map(|d| (d.path.clone(), d.is_dirty()));
                 app.save_as_dialog(fmt);
                 web || app.session.active().map(|d| (d.path.clone(), d.is_dirty())) != before
@@ -864,12 +864,12 @@ fn save_as(app: &mut SlideApp, ui: &mut Ui, bs: &mut Backstage, out: &mut Outcom
 }
 
 /// The slides the Print page prints, in order (0-based).
-pub fn print_slides(doc: &deckcraft_model::Presentation, bs: &Backstage, current: usize) -> Result<Vec<usize>, String> {
+pub fn print_slides(doc: &deckz_model::Presentation, bs: &Backstage, current: usize) -> Result<Vec<usize>, String> {
     let n = doc.slides.len();
     let mut v: Vec<usize> = match bs.print_scope {
         PrintScope::All => (0..n).collect(),
         PrintScope::Current => vec![current.min(n.saturating_sub(1))],
-        PrintScope::Custom => deckcraft_engine::cmd::file::parse_slide_range(&bs.print_range, n).map_err(|e| e.to_string())?,
+        PrintScope::Custom => deckz_engine::cmd::file::parse_slide_range(&bs.print_range, n).map_err(|e| e.to_string())?,
     };
     if !bs.print_hidden && bs.print_scope != PrintScope::Current {
         v.retain(|i| doc.slides.get(*i).is_some_and(|s| !s.hidden));
@@ -925,9 +925,9 @@ fn print(app: &mut SlideApp, ui: &mut Ui, bs: &mut Backstage) {
             dim(
                 ui,
                 if app.services.pick_save.is_some() {
-                    "DeckCraft prints through a PDF: it opens in your PDF viewer, where you choose the printer."
+                    "DeckZ prints through a PDF: it opens in your PDF viewer, where you choose the printer."
                 } else {
-                    "DeckCraft prints through a PDF: it downloads, ready to print from your browser or PDF viewer."
+                    "DeckZ prints through a PDF: it downloads, ready to print from your browser or PDF viewer."
                 },
             );
             ui.add_space(14.0);
@@ -990,7 +990,7 @@ fn print(app: &mut SlideApp, ui: &mut Ui, bs: &mut Backstage) {
 }
 
 /// One printed page in miniature, with a pager under it.
-fn preview(app: &mut SlideApp, ui: &mut Ui, bs: &mut Backstage, doc: &deckcraft_model::Presentation, slides: &[usize]) {
+fn preview(app: &mut SlideApp, ui: &mut Ui, bs: &mut Backstage, doc: &deckz_model::Presentation, slides: &[usize]) {
     let t = Tokens::get(ui.ctx());
     let per = match bs.print_layout {
         "slides" | "notes" => 1,
@@ -1193,7 +1193,7 @@ fn bullets(ui: &mut Ui, items: &[&str]) {
     ui.add_space(10.0);
 }
 
-/// Account: the interface's appearance and what DeckCraft is. DeckCraft has no accounts, so
+/// Account: the interface's appearance and what DeckZ is. DeckZ has no accounts, so
 /// there is nothing to sign in to.
 fn account(app: &mut SlideApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
@@ -1211,7 +1211,7 @@ fn account(app: &mut SlideApp, ui: &mut Ui) {
             });
             ui.add_space(16.0);
             heading(ui, "User Information");
-            dim(ui, "DeckCraft has no accounts: there is nothing to sign in to, and your presentations stay on your device.");
+            dim(ui, "DeckZ has no accounts: there is nothing to sign in to, and your presentations stay on your device.");
         });
         ui.add_space(40.0);
         ui.vertical(|ui| {
@@ -1219,7 +1219,7 @@ fn account(app: &mut SlideApp, ui: &mut Ui) {
             ui.horizontal(|ui| {
                 let (r, _) = ui.allocate_exact_size(vec2(40.0, 40.0), Sense::hover());
                 crate::dialogs::paint_logo(ui.painter(), r);
-                ui.label(RichText::new("DeckCraft").font(theme::bold(24.0)).color(t.text));
+                ui.label(RichText::new("DeckZ").font(theme::bold(24.0)).color(t.text));
             });
             dim(ui, &crate::dialogs::version_line());
             dim(ui, "Open source under MIT OR Apache-2.0. Not affiliated with Microsoft.");
@@ -1227,15 +1227,15 @@ fn account(app: &mut SlideApp, ui: &mut Ui) {
             if task(
                 ui,
                 Icon::Help,
-                "About DeckCraft",
-                "About DeckCraft",
+                "About DeckZ",
+                "About DeckZ",
                 "The version, the people and models who built it, and where to find us.",
                 true,
             ) {
                 let _ = app.run("app.about", json!({}));
             }
-            ui.hyperlink_to("Join our community on Discord", deckcraft_engine::links::DISCORD);
-            ui.hyperlink_to("Source on GitHub", deckcraft_engine::links::GITHUB);
+            ui.hyperlink_to("Join our community on GitHub", deckz_engine::links::DISCORD);
+            ui.hyperlink_to("Source on GitHub", deckz_engine::links::GITHUB);
         });
     });
 }

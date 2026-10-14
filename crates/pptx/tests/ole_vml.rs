@@ -3,8 +3,8 @@
 
 use std::io::{Cursor, Read, Write};
 
-use deckcraft_model::ShapeKind;
-use deckcraft_model::defaults;
+use deckz_model::ShapeKind;
+use deckz_model::defaults;
 
 const FRAME: &str = r#"<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="90" name="Object 3"/><p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr><p:xfrm><a:off x="0" y="0"/><a:ext cx="914400" cy="914400"/></p:xfrm><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/presentationml/2006/ole"><p:oleObj spid="_x0000_s2050" name="Slide" r:id="rIdOle" progId="Thing.1"><p:embed/></p:oleObj></a:graphicData></a:graphic></p:graphicFrame>"#;
 
@@ -27,7 +27,7 @@ fn png(v: u8) -> Vec<u8> {
 
 /// A new deck whose first slide holds [`FRAME`], with the VML drawing, its rels and two pictures.
 fn deck() -> Vec<u8> {
-    let bytes = deckcraft_pptx::export(&defaults::new_presentation(None)).expect("export");
+    let bytes = deckz_pptx::export(&defaults::new_presentation(None)).expect("export");
     let mut z = zip::ZipArchive::new(Cursor::new(bytes)).expect("zip");
     let mut out = zip::ZipWriter::new(Cursor::new(Vec::new()));
     let o = zip::write::SimpleFileOptions::default();
@@ -63,7 +63,7 @@ fn deck() -> Vec<u8> {
 
 #[test]
 fn an_ole_object_without_a_picture_shows_its_vml_preview() {
-    let p = deckcraft_pptx::import(&deck()).expect("import");
+    let p = deckz_pptx::import(&deck()).expect("import");
     let s = p.slides[0].shapes.iter().find(|s| s.name == "Object 3").expect("frame");
     let ShapeKind::Opaque { preview: Some(m), label, .. } = &s.kind else { panic!("{:?}", s.kind) };
     assert_eq!(label, "Thing.1");
@@ -74,7 +74,7 @@ fn an_ole_object_without_a_picture_shows_its_vml_preview() {
 
 #[test]
 fn activex_controls_show_their_pictures() {
-    let p = deckcraft_pptx::import(&deck()).expect("import");
+    let p = deckz_pptx::import(&deck()).expect("import");
     let s = p.slides[0].shapes.iter().find(|s| s.name == "CheckBox1").expect("control picture");
     let ShapeKind::Picture { fill } = &s.kind else { panic!("{:?}", s.kind) };
     assert_eq!(p.media.iter().find(|m| m.id == fill.media).map(|m| m.name.as_str()), Some("preview.png"));

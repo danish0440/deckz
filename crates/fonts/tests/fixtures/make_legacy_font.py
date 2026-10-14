@@ -1,10 +1,10 @@
-"""Build the legacy-name test font: DeckCraft Legacy Semibold (contributor-original, CC0-1.0).
+"""Build the legacy-name test font: DeckZ Legacy Semibold (contributor-original, CC0-1.0).
 
 Usage: python make_legacy_font.py legacy-semibold.ttf legacy-regular.ttf  (needs fontTools)
 
-legacy-semibold.ttf: typographic family "DeckCraft Legacy", style "Semibold" (name IDs 16/17,
-weight 600); Windows family "DeckCraft Legacy Semibold", style "Regular" (name IDs 1/2), as fonts
-like Segoe UI Semibold are named. legacy-regular.ttf: the family's Regular ("DeckCraft Legacy",
+legacy-semibold.ttf: typographic family "DeckZ Legacy", style "Semibold" (name IDs 16/17,
+weight 600); Windows family "DeckZ Legacy Semibold", style "Regular" (name IDs 1/2), as fonts
+like Segoe UI Semibold are named. legacy-regular.ttf: the family's Regular ("DeckZ Legacy",
 "Regular", weight 400), named only by IDs 1/2 as Segoe UI's regular file is. Glyphs: .notdef and
 a square for "A".
 """
@@ -38,18 +38,18 @@ def build(path, names, weight):
 
 
 build(sys.argv[1], {
-    "familyName": "DeckCraft Legacy Semibold",
+    "familyName": "DeckZ Legacy Semibold",
     "styleName": "Regular",
-    "typographicFamily": "DeckCraft Legacy",
+    "typographicFamily": "DeckZ Legacy",
     "typographicSubfamily": "Semibold",
-    "uniqueFontIdentifier": "DeckCraft Legacy Semibold",
-    "fullName": "DeckCraft Legacy Semibold",
-    "psName": "DeckCraftLegacy-Semibold",
+    "uniqueFontIdentifier": "DeckZ Legacy Semibold",
+    "fullName": "DeckZ Legacy Semibold",
+    "psName": "DeckZLegacy-Semibold",
 }, 600)
 build(sys.argv[2], {
-    "familyName": "DeckCraft Legacy",
+    "familyName": "DeckZ Legacy",
     "styleName": "Regular",
-    "uniqueFontIdentifier": "DeckCraft Legacy Regular",
-    "fullName": "DeckCraft Legacy",
-    "psName": "DeckCraftLegacy-Regular",
+    "uniqueFontIdentifier": "DeckZ Legacy Regular",
+    "fullName": "DeckZ Legacy",
+    "psName": "DeckZLegacy-Regular",
 }, 400)

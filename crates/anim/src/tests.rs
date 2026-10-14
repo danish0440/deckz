@@ -2,8 +2,8 @@
 
 use std::sync::Arc;
 
-use deckcraft_model::anim::{ANIMATIONS, TRANSITIONS, TextBuild};
-use deckcraft_model::{
+use deckz_model::anim::{ANIMATIONS, TRANSITIONS, TextBuild};
+use deckz_model::{
     AnimClass, AnimStart, Animation, ColorRef, CustomShow, Presentation, Rgba, Shape, ShapeId, Slide, SlideId, TextBody, Transition, Xfrm,
 };
 
@@ -544,12 +544,12 @@ fn morph_xfrm_interpolates() {
 }
 
 fn solid(s: Shape, r: u8) -> Shape {
-    Shape { fill: Some(deckcraft_model::Fill::solid(ColorRef::rgb(Rgba { r, g: 0, b: 0, a: 255 }))), ..s }
+    Shape { fill: Some(deckz_model::Fill::solid(ColorRef::rgb(Rgba { r, g: 0, b: 0, a: 255 }))), ..s }
 }
 
 #[test]
 fn morph_frame_moves_blends_and_fades() {
-    let p = deckcraft_model::defaults::new_presentation(None);
+    let p = deckz_model::defaults::new_presentation(None);
     let mut a = Slide::default();
     let mut b = Slide::default();
     let moved = |id, x| Shape { xfrm: Some(Xfrm::new(x, 100.0, 200.0, 100.0)), ..shape(id, "Box") };
@@ -563,7 +563,7 @@ fn morph_frame_moves_blends_and_fades() {
     assert_eq!(names, [("Gone", true), ("Box", false), ("New", false)]);
     let m = &f.shapes[1].0;
     assert!((m.xfrm.unwrap().x - 200.0).abs() < 1e-9);
-    assert_eq!(m.fill, Some(deckcraft_model::Fill::solid(ColorRef::rgb(Rgba { r: 100, g: 0, b: 0, a: 255 }))));
+    assert_eq!(m.fill, Some(deckz_model::Fill::solid(ColorRef::rgb(Rgba { r: 100, g: 0, b: 0, a: 255 }))));
     assert_eq!(f.opacity_of(m.id), 1.0);
     assert!((f.opacity_of(f.shapes[0].0.id) - 0.5).abs() < 1e-9);
     assert!((f.opacity_of(f.shapes[2].0.id) - 0.5).abs() < 1e-9);
@@ -581,7 +581,7 @@ fn morph_frame_moves_blends_and_fades() {
 
 #[test]
 fn morph_frame_cross_fades_changed_content() {
-    let p = deckcraft_model::defaults::new_presentation(None);
+    let p = deckz_model::defaults::new_presentation(None);
     let mut a = Slide::default();
     let mut b = Slide::default();
     a.shapes = vec![Shape { text: Some(TextBody::from_text("Before")), ..shape(1, "T") }];
@@ -598,7 +598,7 @@ fn morph_frame_cross_fades_changed_content() {
 
 #[test]
 fn morph_frame_lists_texts_for_words_and_characters() {
-    let p = deckcraft_model::defaults::new_presentation(None);
+    let p = deckz_model::defaults::new_presentation(None);
     let mut a = Slide::default();
     let mut b = Slide::default();
     a.shapes = vec![Shape { text: Some(TextBody::from_text("The Science")), ..shape(1, "T") }];
@@ -619,10 +619,10 @@ fn morph_frame_lists_texts_for_words_and_characters() {
 
 #[test]
 fn morph_frame_morphs_the_outline_of_a_changed_geometry() {
-    let p = deckcraft_model::defaults::new_presentation(None);
+    let p = deckz_model::defaults::new_presentation(None);
     let mut a = Slide::default();
     let mut b = Slide::default();
-    let geo = |s: Shape, g: &str| Shape { geom: deckcraft_model::Geom::preset(g), ..s };
+    let geo = |s: Shape, g: &str| Shape { geom: deckz_model::Geom::preset(g), ..s };
     a.shapes = vec![solid(geo(shape(1, "Form"), "ellipse"), 0)];
     b.shapes = vec![solid(Shape { xfrm: Some(Xfrm::new(300.0, 100.0, 100.0, 100.0)), ..geo(shape(1, "Form"), "star5") }, 200)];
     let f = morph_frame(&p, &a, &b, 0.5, &|_| false);
@@ -631,24 +631,24 @@ fn morph_frame_morphs_the_outline_of_a_changed_geometry() {
     let (m, old) = &f.shapes[0];
     assert!(!old && m.geom == b.shapes[0].geom);
     assert_eq!(f.opacity_of(m.id), 1.0);
-    assert_eq!(m.fill, Some(deckcraft_model::Fill::solid(ColorRef::rgb(Rgba { r: 100, g: 0, b: 0, a: 255 }))));
+    assert_eq!(m.fill, Some(deckz_model::Fill::solid(ColorRef::rgb(Rgba { r: 100, g: 0, b: 0, a: 255 }))));
     assert_eq!(f.paths.len(), 1);
     assert_eq!(f.paths[0].id, m.id);
     assert_eq!(f.paths[0].from, a.shapes[0].geom);
     assert_eq!((f.paths[0].from_box, f.paths[0].to_box), (a.shapes[0].xfrm.unwrap(), b.shapes[0].xfrm.unwrap()));
     // Other adjust values of the same preset morph too.
-    b.shapes[0].geom = deckcraft_model::Geom::Preset { name: "ellipse".into(), adj: vec![1.0] };
+    b.shapes[0].geom = deckz_model::Geom::Preset { name: "ellipse".into(), adj: vec![1.0] };
     assert_eq!(morph_frame(&p, &a, &b, 0.5, &|_| false).paths.len(), 1);
     // The same geometry only moves.
     b.shapes[0].geom = a.shapes[0].geom.clone();
     assert!(morph_frame(&p, &a, &b, 0.5, &|_| false).paths.is_empty());
     // Another text as well: the two cross-fade as before.
-    b.shapes[0].geom = deckcraft_model::Geom::preset("star5");
+    b.shapes[0].geom = deckz_model::Geom::preset("star5");
     b.shapes[0].text = Some(TextBody::from_text("Star"));
     let f = morph_frame(&p, &a, &b, 0.5, &|_| false);
     assert!(f.paths.is_empty() && f.shapes.len() == 2);
     // Tables and groups have no outline to morph.
-    let table = |g: &str| Shape { kind: deckcraft_model::ShapeKind::Table(Default::default()), ..geo(shape(1, "Form"), g) };
+    let table = |g: &str| Shape { kind: deckz_model::ShapeKind::Table(Default::default()), ..geo(shape(1, "Form"), g) };
     a.shapes = vec![table("rect")];
     b.shapes = vec![table("ellipse")];
     assert!(morph_frame(&p, &a, &b, 0.5, &|_| false).paths.is_empty());
@@ -764,7 +764,7 @@ fn compose_and_sanitize() {
 
 #[test]
 fn show_follows_links() {
-    use deckcraft_model::text::Action;
+    use deckz_model::text::Action;
     let mut p = pres(4);
     Arc::make_mut(&mut p.slides[3]).hidden = true;
     let mut s = ShowState::new(&p);

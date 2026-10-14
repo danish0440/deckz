@@ -1,12 +1,12 @@
 # AGENTS.md — rules for every agent and contributor
 
-DeckCraft is a clean-room, open-source, pure-Rust presentation application targeting Microsoft
+DeckZ is a clean-room, open-source, pure-Rust presentation application targeting Microsoft
 PowerPoint parity — and superiority (speed, openness, agent control). It runs natively on macOS,
 Windows, Linux and FreeBSD, and on the web via WASM. Siblings with the same conventions:
-PhotoCraft, VectorCraft, FilmCraft, LightCraft, PdfCraft, EffectCraft, DesignCraft
+PhotoZ, VectorZ, FilmZ, LightZ, PdfZ, EffectZ, DesignZ
 (`../<app>`).
 
-Standards and learnings shared across the crafting apps live in `../../craftrules` (checked out
+Standards and learnings shared across the Z apps live in `../../craftrules` (checked out
 next to this repo's parent, or `storytold/craftrules`). Read its `AGENTS.md` at the start of a
 session, follow its standards, and contribute reusable learnings back there. Never code: repos
 don't share code.
@@ -32,7 +32,7 @@ the app renders from those.
   product" includes PowerPoint, Office, Windows and the fonts they install (Aptos, Calibri,
   Cambria, Segoe, Consolas, Wingdings…).
 - This holds even when the vendor publishes the material under an open licence, if it is **visual
-  design**: DeckCraft does not embed or reference Adobe's Source Sans/Serif/Han families or Noto
+  design**: DeckZ does not embed or reference Adobe's Source Sans/Serif/Han families or Noto
   CJK (Source Han rebranded); `crates/fonts/build.rs` excludes them.
 - **Never** recreate, trace, redraw or closely imitate a vendor icon, theme or graphic. Our icons
   are drawn in code or come from openly licensed sets (Lucide, ISC), and our themes, colours,
@@ -58,7 +58,7 @@ Forbidden: system fonts that are not openly licensed, vendor emoji artwork, stoc
 for personal use" material, screenshots of other people's software, anything whose licence you
 cannot prove from its original source.
 
-**Screenshots of DeckCraft** are contributor-original. Everything visible in them must itself be
+**Screenshots of DeckZ** are contributor-original. Everything visible in them must itself be
 allowed: our UI, our/Lucide icons, OFL fonts, and decks built only from allowed assets.
 
 ### 1.3 Every asset is attributed
@@ -69,7 +69,7 @@ allowed: our UI, our/Lucide icons, OFL fonts, and decks built only from allowed 
   or `docs/brand/` has no row.
 - **`NOTICE`** keeps the notices the licences require.
 - Fonts live in [storytold/craft-fonts](https://github.com/storytold/craft-fonts), never in this
-  repo (craftrules `standards/fonts.md`). DeckCraft embeds its `fonts/latin-manifest.txt` and
+  repo (craftrules `standards/fonts.md`). DeckZ embeds its `fonts/latin-manifest.txt` and
   `fonts/manifest.txt` when built with `CRAFT_FONTS_DIR` (local dev: `.cargo/config.toml` points at
   `../craft-fonts`).
 
@@ -98,7 +98,7 @@ once and tell the user.
 
 ## 3. Never crash
 
-People trust DeckCraft with their talks; a crash loses work. **This outranks feature work.**
+People trust DeckZ with their talks; a crash loses work. **This outranks feature work.**
 Standard: craftrules `standards/never-crash.md`.
 - No `unwrap()`, `expect()`, `panic!`, `unreachable!`, `todo!`, `unimplemented!` in non-test
   code; no `unsafe` (`unsafe_code = "forbid"`). Every production crate root carries
@@ -118,11 +118,11 @@ Standard: craftrules `standards/never-crash.md`.
 | L1 | `model` (presentation, masters, layouts, slides, shapes, text, themes, inheritance, text edit ops) |
 | L2 | `fonts`, `text` (layout), |
 | L3 | `render` (vello_cpu) |
-| L4 | `format` (.deckcraft), `pptx` |
+| L4 | `format` (.deckz), `pptx` |
 | L5 | `engine` (session, history, commands, tools, keys, sample) |
 | L6 | `mcp` |
 | L7 | `ui-egui` (swappable; nothing below depends on egui/eframe/winit/rfd) |
-| apps | `deckcraft` (desktop), `deckcraft-cli`, `deckcraft-web` |
+| apps | `deckz` (desktop), `deckz-cli`, `deckz-web` |
 
 - **Everything is a command** (`crates/engine/src/cmd/*`): id, label, ribbon/menu place,
   shortcut, params doc, `enabled`, `run`, plus tests. Ids follow PowerPoint's ribbon and menus
@@ -141,16 +141,16 @@ to `main`.
 
 ## 6. Running and looking at the app
 
-- `cargo run --release -p deckcraft -- --sample --control 7990` (sample deck + control channel).
+- `cargo run --release -p deckz -- --sample --control 7990` (sample deck + control channel).
 - Drive it: JSON lines on `127.0.0.1:7990`, e.g.
   `{"id":1,"method":"engine.execute","params":{"command":"shape.insert","params":{"preset":"star5","rect":[100,100,200,200]}}}`
   then `{"id":2,"method":"ui.screenshot","params":{"path":"/tmp/shot.png"}}`. Methods:
   `crates/ui-egui/src/control.rs`, docs: `docs/control-protocol.md`.
 - **For UI work, look at the result** (screenshot, read the PNG) and compare with the observations
   in `plan/powerpoint/01-observed-ui.md`.
-- Headless: `deckcraft-cli render --sample --all --scale 1 out/`,
-  `deckcraft-cli run --sample --cmd 'slide.new={"title":"Hi"}' --export out.png`.
-- MCP: `deckcraft-cli mcp` (headless) or `deckcraft-cli mcp --connect 7990` (drive the app).
+- Headless: `deckz-cli render --sample --all --scale 1 out/`,
+  `deckz-cli run --sample --cmd 'slide.new={"title":"Hi"}' --export out.png`.
+- MCP: `deckz-cli mcp` (headless) or `deckz-cli mcp --connect 7990` (drive the app).
   See `docs/mcp.md`.
 - Shell gotcha on the dev machine: `mv`/`cp` are aliased interactive; use `/bin/mv -f`, `/bin/cp -f`.
 - Parallel agents: separate `CARGO_TARGET_DIR` per agent; edit only the crates you own.
@@ -169,7 +169,7 @@ docs follow craftrules `standards/progress-docs.md`:
 | `docs/roadmap.md` | Current focus, the beta plan, milestones |
 | `docs/parity-checklist.md` | Feature rows scored D/P/M; `cargo xtask parity` regenerates its summary |
 | `docs/file-format-parity.md`, `ui-parity.md`, `hardware-parity.md`, `localization-parity.md`, `animation-parity.md`, `slideshow-parity.md` | Per-dimension and per-feature detail |
-| `docs/architecture.md` | How DeckCraft is built today |
+| `docs/architecture.md` | How DeckZ is built today |
 
 When a task lands, re-score its checklist row, delete or update its `gaps.md` entry, add a line to
 the `ROADMAP.md` progress log, and update each touched doc's status line and revision history.

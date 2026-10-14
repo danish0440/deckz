@@ -2,8 +2,8 @@
 //! the outlines of the selected shapes. The result takes the formatting of the first selected
 //! shape, like PowerPoint.
 
-use deckcraft_geom::{PathEl, Rect, Xfrm};
-use deckcraft_model::{CustomPath, Geom, Shape, ShapeId, ShapeKind};
+use deckz_geom::{PathEl, Rect, Xfrm};
+use deckz_model::{CustomPath, Geom, Shape, ShapeId, ShapeKind};
 use i_overlay::core::fill_rule::FillRule;
 use i_overlay::core::overlay_rule::OverlayRule;
 use i_overlay::float::single::SingleFloatOverlay;
@@ -31,12 +31,12 @@ pub fn specs() -> Vec<CommandSpec> {
 }
 
 /// The filled outline of `s` in slide points (curves flattened).
-fn area_of(doc: &deckcraft_model::Presentation, sel: &crate::Selection, s: &Shape) -> Area {
+fn area_of(doc: &deckz_model::Presentation, sel: &crate::Selection, s: &Shape) -> Area {
     let x = xfrm_of(doc, sel, s);
-    let geo = deckcraft_render::shape_geometry(s, x.w, x.h);
+    let geo = deckz_render::shape_geometry(s, x.w, x.h);
     let a = x.affine();
     let mut out: Area = vec![];
-    for sp in geo.paths.iter().filter(|p| p.fill != deckcraft_geom::preset::FillMode::None) {
+    for sp in geo.paths.iter().filter(|p| p.fill != deckz_geom::preset::FillMode::None) {
         let mut cur: Vec<[f64; 2]> = vec![];
         let flush = |cur: &mut Vec<[f64; 2]>, out: &mut Area| {
             if cur.len() > 2 {
@@ -45,7 +45,7 @@ fn area_of(doc: &deckcraft_model::Presentation, sel: &crate::Selection, s: &Shap
                 cur.clear();
             }
         };
-        deckcraft_geom::preset_flatten(&sp.path, &mut |el| match el {
+        deckz_geom::preset_flatten(&sp.path, &mut |el| match el {
             PathEl::MoveTo(p) => {
                 flush(&mut cur, &mut out);
                 let q = a * p;

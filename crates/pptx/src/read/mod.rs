@@ -11,9 +11,9 @@ pub(crate) use chart::{chart_from as chart_from_el, read_chart_xml};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-use deckcraft_geom::{Size, emu_to_pt};
-use deckcraft_model::text::TextBody;
-use deckcraft_model::{
+use deckz_geom::{Size, emu_to_pt};
+use deckz_model::text::TextBody;
+use deckz_model::{
     Background, Comment, CustomShow, Geom, HeaderFooter, Layout, LayoutId, LayoutType, Master, MasterId, MediaId, MediaItem, PhType, Presentation,
     Properties, Section, ShowSettings, Slide, SlideId, defaults,
 };
@@ -448,10 +448,10 @@ fn inherit_placeholder_geometry(p: &mut Presentation) {
     let mut layout_geoms: Vec<(LayoutId, usize, Geom)> = vec![];
     for m in &p.masters {
         for l in &m.layouts {
-            let ctx = deckcraft_model::resolve::Ctx::for_layout(p, m, l);
+            let ctx = deckz_model::resolve::Ctx::for_layout(p, m, l);
             for (i, s) in l.shapes.iter().enumerate() {
                 if unset(&s.geom) {
-                    let (_, mp) = deckcraft_model::resolve::parents(&ctx, s);
+                    let (_, mp) = deckz_model::resolve::parents(&ctx, s);
                     layout_geoms.push((l.id, i, mp.map(|m| m.geom.clone()).filter(|g| !unset(g)).unwrap_or_default()));
                 }
             }
@@ -470,10 +470,10 @@ fn inherit_placeholder_geometry(p: &mut Presentation) {
     }
     let mut slide_geoms: Vec<(usize, usize, Geom)> = vec![];
     for (si, sl) in p.slides.iter().enumerate() {
-        let Some(ctx) = deckcraft_model::resolve::Ctx::for_slide(p, sl) else { continue };
+        let Some(ctx) = deckz_model::resolve::Ctx::for_slide(p, sl) else { continue };
         for (i, s) in sl.shapes.iter().enumerate() {
             if unset(&s.geom) {
-                let (lp, mp) = deckcraft_model::resolve::parents(&ctx, s);
+                let (lp, mp) = deckz_model::resolve::parents(&ctx, s);
                 let g = lp.map(|l| l.geom.clone()).filter(|g| !unset(g)).or_else(|| mp.map(|m| m.geom.clone()).filter(|g| !unset(g)));
                 slide_geoms.push((si, i, g.unwrap_or_default()));
             }
@@ -506,18 +506,18 @@ fn inherit_placeholder_geometry(p: &mut Presentation) {
 }
 
 /// Every shape, groups included.
-fn walk_shapes_mut(shapes: &mut [deckcraft_model::Shape], f: &mut dyn FnMut(&mut deckcraft_model::Shape)) {
+fn walk_shapes_mut(shapes: &mut [deckz_model::Shape], f: &mut dyn FnMut(&mut deckz_model::Shape)) {
     for s in shapes {
         f(s);
-        if let deckcraft_model::ShapeKind::Group { children, .. } = &mut s.kind {
+        if let deckz_model::ShapeKind::Group { children, .. } = &mut s.kind {
             walk_shapes_mut(children, f);
         }
     }
 }
 
 /// `a:tblStyleLst`: the table styles the file defines.
-fn table_styles(imp: &mut Imp, part: &Part, root: &El) -> Vec<deckcraft_model::table::TableStyleDef> {
-    use deckcraft_model::table::{TableBorder, TablePart, TablePartStyle, TableStyleDef};
+fn table_styles(imp: &mut Imp, part: &Part, root: &El) -> Vec<deckz_model::table::TableStyleDef> {
+    use deckz_model::table::{TableBorder, TablePart, TablePartStyle, TableStyleDef};
     root.children_named("tblStyle")
         .take(256)
         .filter_map(|st| {
@@ -531,7 +531,7 @@ fn table_styles(imp: &mut Imp, part: &Part, root: &El) -> Vec<deckcraft_model::t
                 if let Some(fr) = bg.child("fillRef") {
                     ps.fill_ref = Some((
                         fr.u32("idx").unwrap_or(0),
-                        dml::color(fr).unwrap_or(deckcraft_model::ColorRef::scheme(deckcraft_color::SchemeSlot::Accent1)),
+                        dml::color(fr).unwrap_or(deckz_model::ColorRef::scheme(deckz_color::SchemeSlot::Accent1)),
                     ));
                 }
                 def.background = Some(ps);
@@ -551,7 +551,7 @@ fn table_styles(imp: &mut Imp, part: &Part, root: &El) -> Vec<deckcraft_model::t
                     if let Some(fr) = tc.child("fillRef") {
                         ps.fill_ref = Some((
                             fr.u32("idx").unwrap_or(0),
-                            dml::color(fr).unwrap_or(deckcraft_model::ColorRef::scheme(deckcraft_color::SchemeSlot::Accent1)),
+                            dml::color(fr).unwrap_or(deckz_model::ColorRef::scheme(deckz_color::SchemeSlot::Accent1)),
                         ));
                     }
                     if let Some(bd) = tc.child("tcBdr") {
@@ -562,7 +562,7 @@ fn table_styles(imp: &mut Imp, part: &Part, root: &El) -> Vec<deckcraft_model::t
                             } else {
                                 b.child("lnRef").map(|r| TableBorder::Ref {
                                     idx: r.u32("idx").unwrap_or(0),
-                                    color: dml::color(r).unwrap_or(deckcraft_model::ColorRef::scheme(deckcraft_color::SchemeSlot::Accent1)),
+                                    color: dml::color(r).unwrap_or(deckz_model::ColorRef::scheme(deckz_color::SchemeSlot::Accent1)),
                                 })
                             };
                             if let Some(slot) = ps.borders.get_mut(i) {
@@ -581,12 +581,12 @@ fn table_styles(imp: &mut Imp, part: &Part, root: &El) -> Vec<deckcraft_model::t
 fn background(imp: &mut Imp, part: &Part, csld: &El) -> Option<Background> {
     let bg = csld.child("bg")?;
     if let Some(pr) = bg.child("bgPr") {
-        return Some(Background::Fill { fill: dml::fill_of(imp, part, pr).unwrap_or(deckcraft_model::Fill::None) });
+        return Some(Background::Fill { fill: dml::fill_of(imp, part, pr).unwrap_or(deckz_model::Fill::None) });
     }
     let r = bg.child("bgRef")?;
     Some(Background::Ref {
         idx: r.u32("idx").unwrap_or(1001),
-        color: dml::color(r).unwrap_or(deckcraft_model::ColorRef::scheme(deckcraft_color::SchemeSlot::Bg1)),
+        color: dml::color(r).unwrap_or(deckz_model::ColorRef::scheme(deckz_color::SchemeSlot::Bg1)),
     })
 }
 
@@ -811,7 +811,7 @@ fn read_show(sp: &El, shows: &HashMap<String, String>) -> ShowSettings {
         s.custom_show = Some(shows.get(id).cloned().unwrap_or_else(|| id.to_string()));
     }
     if let Some(c) = sp.child("penClr").and_then(dml::color)
-        && let deckcraft_model::ColorBase::Rgb { rgb } = c.base
+        && let deckz_model::ColorBase::Rgb { rgb } = c.base
     {
         s.pen_color = rgb;
     }
@@ -847,7 +847,7 @@ fn header_footer(p: &Presentation) -> HeaderFooter {
                 Some(PhType::Date) => {
                     hf.date = true;
                     if let Some(t) = &sh.text
-                        && !t.paragraphs.iter().flat_map(|p| &p.runs).any(|r| matches!(r.kind, deckcraft_model::text::RunKind::Field { .. }))
+                        && !t.paragraphs.iter().flat_map(|p| &p.runs).any(|r| matches!(r.kind, deckz_model::text::RunKind::Field { .. }))
                         && hf.date_text.is_empty()
                     {
                         hf.date_text = t.text();

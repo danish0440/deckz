@@ -1,4 +1,4 @@
-//! Bit-level reading and writing shared by DeckCraft's codec crates (ported from FilmCraft).
+//! Bit-level reading and writing shared by DeckZ's codec crates (ported from FilmZ).
 //!
 //! - [`BitReader`]: MSB-first reader with Exp-Golomb (`ue(v)`, `se(v)`), as used by H.264/HEVC/AV1 headers.
 //! - [`BitWriter`]: the matching writer (for encoders and header rewriting).

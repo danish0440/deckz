@@ -14,7 +14,7 @@ use crate::slice::{NalHeader, Poc, PocState, SliceHeader, SliceType, nal_type};
 use crate::slicedec::{PicState, SliceDecoder};
 use crate::transform::LevelScale;
 use crate::{ColorInfo, Picture};
-use deckcraft_bitstream::{BitReader, annexb_nals, length_prefixed_nals, unescape_rbsp};
+use deckz_bitstream::{BitReader, annexb_nals, length_prefixed_nals, unescape_rbsp};
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 

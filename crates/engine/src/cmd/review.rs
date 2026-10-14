@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use deckcraft_model::Comment;
+use deckz_model::Comment;
 use serde_json::{Value, json};
 
 use super::*;
@@ -130,34 +130,34 @@ fn accessibility(s: &mut Session, _p: &Value) -> Result<Value> {
         if sl.title().trim().is_empty() {
             out.push(json!({"slide": i, "issue": "Missing slide title"}));
         }
-        deckcraft_model::walk(&sl.shapes, &mut |sh, _| {
+        deckz_model::walk(&sl.shapes, &mut |sh, _| {
             let needs_alt = matches!(
                 sh.kind,
-                deckcraft_model::ShapeKind::Picture { .. }
-                    | deckcraft_model::ShapeKind::Chart(_)
-                    | deckcraft_model::ShapeKind::Media(_)
-                    | deckcraft_model::ShapeKind::Group { .. }
+                deckz_model::ShapeKind::Picture { .. }
+                    | deckz_model::ShapeKind::Chart(_)
+                    | deckz_model::ShapeKind::Media(_)
+                    | deckz_model::ShapeKind::Group { .. }
             );
             if needs_alt && sh.descr.trim().is_empty() && !sh.decorative {
                 out.push(json!({"slide": i, "shape": sh.id, "name": sh.name, "issue": "Missing alternative text"}));
             }
         });
         // Low-contrast text against the slide background.
-        if let Some(ctx) = deckcraft_model::resolve::Ctx::for_slide(&st.doc, sl) {
-            let bg = match deckcraft_model::resolve::background(&ctx, Some(sl)) {
-                (deckcraft_model::Fill::Solid { color }, ph) => Some(ctx.color(&color, ph)),
+        if let Some(ctx) = deckz_model::resolve::Ctx::for_slide(&st.doc, sl) {
+            let bg = match deckz_model::resolve::background(&ctx, Some(sl)) {
+                (deckz_model::Fill::Solid { color }, ph) => Some(ctx.color(&color, ph)),
                 _ => None,
             };
             if let Some(bg) = bg {
                 for sh in &sl.shapes {
                     let Some(t) = &sh.text else { continue };
                     let Some(para) = t.paragraphs.iter().find(|p| !p.is_empty()) else { continue };
-                    let rp = deckcraft_model::resolve::run(&ctx, sh, para, &para.runs.first().map(|r| r.props.clone()).unwrap_or_default());
-                    let (fill, _) = deckcraft_model::resolve::fill(&ctx, sh);
+                    let rp = deckz_model::resolve::run(&ctx, sh, para, &para.runs.first().map(|r| r.props.clone()).unwrap_or_default());
+                    let (fill, _) = deckz_model::resolve::fill(&ctx, sh);
                     if fill.as_ref().is_some_and(|f| !f.is_none()) {
                         continue;
                     }
-                    let fg = deckcraft_model::resolve::text_color(&ctx, &rp);
+                    let fg = deckz_model::resolve::text_color(&ctx, &rp);
                     if fg.contrast(bg) < 3.0 {
                         out.push(json!({"slide": i, "shape": sh.id, "name": sh.name, "issue": format!("Hard-to-read text contrast ({:.1}:1)", fg.contrast(bg))}));
                     }
@@ -201,7 +201,7 @@ fn spelling(s: &mut Session, _p: &Value) -> Result<Value> {
     let st = s.doc()?;
     let mut out = vec![];
     for (i, sl) in st.doc.slides.iter().enumerate() {
-        deckcraft_model::walk(&sl.shapes, &mut |sh, _| {
+        deckz_model::walk(&sl.shapes, &mut |sh, _| {
             if let Some(t) = &sh.text {
                 for w in t.text().split(|c: char| !c.is_alphanumeric() && c != '\'') {
                     if COMMON.contains(&w.to_lowercase().as_str()) {
@@ -258,7 +258,7 @@ fn custom_show(s: &mut Session, p: &Value) -> Result<Value> {
         doc.custom_shows.retain(|c| c.name != name);
         if !delete {
             let slides = idx.iter().filter_map(|i| doc.slides.get(*i).map(|x| x.id)).collect();
-            doc.custom_shows.push(deckcraft_model::CustomShow { name: name.clone(), slides });
+            doc.custom_shows.push(deckz_model::CustomShow { name: name.clone(), slides });
         }
         Ok(())
     })?;

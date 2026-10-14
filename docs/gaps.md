@@ -1,4 +1,4 @@
-# Where DeckCraft falls short of PowerPoint
+# Where DeckZ falls short of PowerPoint
 
 > **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-13 · **Change:** minor (3-D bevel, camera and face lighting rendered; previous: minor, IME composition and CJK interface text landed, #101; previous: minor, core-workflow alpha gate added; stage stays alpha; before that: major, first itemized gap list; full re-measure against PowerPoint for Mac 16.113.4 and the open GitHub issues) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
 
@@ -42,7 +42,7 @@ revision history.
 
 ### Startup crashes on some Windows GPUs (#40, #59)
 - **Evidence:** #59 (Intel UHD, access violation in `igvk64.dll` during Vulkan enumeration), #40
-  (WordCraft, GridCraft and DeckCraft all fail on one Windows 11 PC). The DX12 default (#16) fixed
+  (WordZ, GridZ and DeckZ all fail on one Windows 11 PC). The DX12 default (#16) fixed
   AMD's `atio6axx.dll` crash only.
 - **Impact:** the app never opens for those users.
 - **Estimate:** 4–8 h (backend probing outside the process or a safe-mode fallback, a software
@@ -59,7 +59,7 @@ revision history.
 Detail in [file-format-parity.md](file-format-parity.md).
 
 ### PPTX has never met a corpus of real decks
-- **Evidence:** every PPTX test (`crates/pptx/tests`, 30 tests) uses decks DeckCraft generates;
+- **Evidence:** every PPTX test (`crates/pptx/tests`, 30 tests) uses decks DeckZ generates;
   the 2026-10-07 alpha checklist already listed this as open. No reference renders from PowerPoint
   exist to compare against.
 - **Impact:** the main reason to switch is "open my PowerPoint decks". Fidelity on real decks
@@ -77,7 +77,7 @@ Detail in [file-format-parity.md](file-format-parity.md).
 
 ### SVG pictures don't render
 - **Evidence:** `crates/render/src/images.rs` decodes through `image` 0.25 (PNG, JPEG, WebP, GIF,
-  TIFF, BMP), and EMF/WMF through `deckcraft-metafile` (ported from WordCraft: paths, fills, pens,
+  TIFF, BMP), and EMF/WMF through `deckz-metafile` (ported from WordZ: paths, fills, pens,
   pattern and hatch brushes, bitmaps and text; clip regions and EMF+ records are not drawn).
   Nothing reads SVG; PowerPoint's Insert Icons stores SVG with a PNG fallback.
 - **Impact:** SVG icons show only their raster fallback, and SVG files can't be inserted. An
@@ -94,7 +94,7 @@ Detail in [file-format-parity.md](file-format-parity.md).
 
 ### No legacy `.ppt`/`.pot`/`.pps` import
 - **Evidence:** PowerPoint for Mac still opens and saves the 97–2003 binary formats
-  (`CFBundleDocumentTypes`); DeckCraft doesn't read them.
+  (`CFBundleDocumentTypes`); DeckZ doesn't read them.
 - **Impact:** archives of older decks don't open.
 - **Estimate:** 20–35 h (import only, from the public [MS-PPT] spec). Owner decision whether it's
   worth it.
@@ -119,7 +119,7 @@ Detail in [file-format-parity.md](file-format-parity.md).
 - **Evidence:** checklist row missing; PowerPoint exports MP4/MOV and animated GIF.
 - **Impact:** sharing a talk as a video is a common request.
 - **Estimate:** 10–16 h (render the timeline frame by frame; an H.264 encoder is the hard part,
-  FilmCraft has one to copy).
+  FilmZ has one to copy).
 
 ### Embedded fonts aren't read or written
 - **Evidence:** no `p:embeddedFontLst` handling in `crates/pptx`.
@@ -216,7 +216,7 @@ Detail in [hardware-parity.md](hardware-parity.md).
 - **CPU slide rasterization** (`vello_cpu`); PowerPoint renders on the GPU. 12–20 h (vello hybrid
   or wgpu path).
 - **Software-only video decode**; PowerPoint uses VideoToolbox/Media Foundation. 8–14 h (copy
-  FilmCraft's hardware decode).
+  FilmZ's hardware decode).
 - **No pen pressure or tilt for ink**; no pinch-zoom or trackpad gestures. 3–6 h.
 
 ## Localization

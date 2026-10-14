@@ -1,12 +1,12 @@
 //! DrawingML reading: colours, fills, lines, effects, transforms and text.
 
-use deckcraft_color::{ColorTransform, Rgba, SchemeSlot};
-use deckcraft_geom::{Xfrm, emu_to_pt};
-use deckcraft_model::style::{
+use deckz_color::{ColorTransform, Rgba, SchemeSlot};
+use deckz_geom::{Xfrm, emu_to_pt};
+use deckz_model::style::{
     ColorBase, ColorRef, Compound, Dash, Effects, Fill, Glow, Gradient, GradientShape, GradientStop, Line, LineCap, LineEnd, LineJoin, PatternFill,
     PictureFill, PictureMode, Reflection, Shadow,
 };
-use deckcraft_model::text::{
+use deckz_model::text::{
     Action, Align, Anchor, AutoFit, BodyProps, Bullet, Caps, Hyperlink, LevelStyle, ListStyle, ParaProps, Paragraph, Run, RunKind, RunProps, Spacing,
     Strike, TabStop, TextBody, TextDir,
 };
@@ -174,7 +174,7 @@ pub fn blip_fill(imp: &mut Imp, part: &Part, bf: &El) -> Option<PictureFill> {
 }
 
 /// Media for an element with `r:embed` (or `r:link`).
-pub fn media_ref(imp: &mut Imp, part: &Part, b: &El) -> Option<deckcraft_model::MediaId> {
+pub fn media_ref(imp: &mut Imp, part: &Part, b: &El) -> Option<deckz_model::MediaId> {
     if let Some(id) = b.attr("r:embed").filter(|s| !s.is_empty())
         && let Some(r) = part.rels.get(id)
     {
@@ -266,7 +266,7 @@ pub fn effects(el: &El) -> Effects {
                     "gradFill" => Some(Fill::Gradient(gradient(f))),
                     _ => None,
                 });
-                fx.fill_overlay = fill.map(|fill| deckcraft_model::style::FillOverlay { blend: e.attr("blend").unwrap_or("over").to_string(), fill });
+                fx.fill_overlay = fill.map(|fill| deckz_model::style::FillOverlay { blend: e.attr("blend").unwrap_or("over").to_string(), fill });
             }
             "reflection" => {
                 fx.reflection = Some(Reflection {
@@ -347,7 +347,7 @@ pub fn body_pr(b: &El) -> BodyProps {
 fn warp_adjusts(preset: &str, e: &El) -> Vec<f64> {
     let mut adj: Vec<f64> = Vec::new();
     let Some(av) = e.child("avLst") else { return adj };
-    let defaults = deckcraft_geom::warp::adjust_defaults(preset);
+    let defaults = deckz_geom::warp::adjust_defaults(preset);
     for gd in av.children_named("gd").take(16) {
         let n = gd.attr("name").unwrap_or("");
         let idx = if n == "adj" {

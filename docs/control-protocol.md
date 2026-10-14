@@ -12,7 +12,7 @@ Coordinates are slide points (1/72 inch; a 16:9 slide is 960 × 540) unless note
 
 | Method | Params | What it does |
 |---|---|---|
-| `engine.execute` / `ui.menu.invoke` / `command` | `{command, params}` | Run any command (see `engine.commands`; `deckcraft-cli describe ID` documents one) |
+| `engine.execute` / `ui.menu.invoke` / `command` | `{command, params}` | Run any command (see `engine.commands`; `deckz-cli describe ID` documents one) |
 | `engine.commands` | — | Every command: id, label, menu path, shortcut, params doc, enabled / disabled reason |
 | `document.inspect` | — | Slides, sections, layouts, shapes, selection |
 | `ui.inspect` | — | UI state, active tool, window/canvas/slide rects, dialog, `home` (the File tab open over a presentation), `backstage` (its page, also the start screen), slide show state, documents, perf (fps, render ms) |
@@ -29,5 +29,5 @@ Coordinates are slide points (1/72 inch; a 16:9 slide is 960 × 540) unless note
 | `show.start` / `show.end` | `{from?: slide index, presenter?, reading?}` | Slide show |
 | `app.open` / `app.save` / `app.export` / `app.quit` | `{path, …}` | Files (export takes the `file.export` params, e.g. `{"path": "deck.pdf", "layout": "handouts", "perPage": 3}`) |
 
-The MCP server (`deckcraft-cli mcp`, see [mcp.md](mcp.md)) wraps the same methods for Claude
-and other agents; `deckcraft-cli app METHOD [JSON]` sends one request from a shell.
+The MCP server (`deckz-cli mcp`, see [mcp.md](mcp.md)) wraps the same methods for Claude
+and other agents; `deckz-cli app METHOD [JSON]` sends one request from a shell.

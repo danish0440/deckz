@@ -3,12 +3,12 @@
 
 use std::collections::{HashMap, HashSet};
 
-use deckcraft_color::SchemeSlot;
-use deckcraft_geom::{Xfrm, preset};
-use deckcraft_model::style::{ColorRef, Effects, Fill};
-use deckcraft_model::table::{Cell, Row, Table};
-use deckcraft_model::text::{Anchor, TextDir};
-use deckcraft_model::{Geom, MediaClip, PhType, Placeholder, Shape, ShapeId, ShapeKind, ShapeStyle};
+use deckz_color::SchemeSlot;
+use deckz_geom::{Xfrm, preset};
+use deckz_model::style::{ColorRef, Effects, Fill};
+use deckz_model::table::{Cell, Row, Table};
+use deckz_model::text::{Anchor, TextDir};
+use deckz_model::{Geom, MediaClip, PhType, Placeholder, Shape, ShapeId, ShapeKind, ShapeStyle};
 
 use super::{Imp, Part, dml};
 use crate::xml::El;
@@ -225,7 +225,7 @@ fn sp_pr(imp: &mut Imp, part: &Part, s: &mut Shape, pr: &El) {
     if let Some(pg) = pr.child("prstGeom") {
         s.geom = preset_geom(pg);
     } else if let Some(cg) = pr.child("custGeom") {
-        let (w, h) = s.xfrm.map(|x| (deckcraft_geom::pt_to_emu(x.w) as f64, deckcraft_geom::pt_to_emu(x.h) as f64)).unwrap_or((21600.0, 21600.0));
+        let (w, h) = s.xfrm.map(|x| (deckz_geom::pt_to_emu(x.w) as f64, deckz_geom::pt_to_emu(x.h) as f64)).unwrap_or((21600.0, 21600.0));
         let paths = crate::custgeom::read_cust_geom(cg, w, h);
         if !paths.is_empty() {
             s.geom = Geom::Custom { paths };
@@ -401,7 +401,7 @@ fn frame(imp: &mut Imp, part: &Part, ctx: &mut IdCtx, e: &El, depth: usize) -> S
 
 /// The preview picture of an old-style embedded object (`p:oleObj spid` with no `p:pic`): the
 /// `v:imagedata` of the legacy VML drawing shape with that id, as PowerPoint 2007 wrote them.
-fn vml_preview(imp: &mut Imp, part: &Part, spid: &str) -> Option<deckcraft_model::MediaId> {
+fn vml_preview(imp: &mut Imp, part: &Part, spid: &str) -> Option<deckz_model::MediaId> {
     for rel in part.rels.items.iter().filter(|r| r.kind == "vmlDrawing" && !r.external) {
         let Some(doc) = imp.pkg.xml(&rel.target) else { continue };
         let mut shapes = vec![];
@@ -449,7 +449,7 @@ fn table(imp: &mut Imp, part: &Part, tbl: &El) -> Table {
         t.band_col = pr.bool("bandCol").unwrap_or(false);
         if let Some(id) = pr.child("tableStyleId").map(|e| e.text()) {
             // A style the file defines is drawn from its definition (by its GUID).
-            // DeckCraft's own styles (written with GUIDs derived from their ids) map back to them.
+            // DeckZ's own styles (written with GUIDs derived from their ids) map back to them.
             let up = id.trim().to_ascii_uppercase();
             t.style =
                 if imp.table_style_ids.contains(&up) && !crate::tables::is_own_guid(&up) { up } else { crate::tables::style_from_guid(id.trim()) };

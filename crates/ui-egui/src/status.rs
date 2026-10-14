@@ -15,7 +15,7 @@ pub fn status_bar(app: &mut SlideApp, ui: &mut Ui) {
         let Some(st) = app.session.active() else { return };
         let n = st.doc.slides.len();
         let left = match st.selection.target {
-            deckcraft_engine::Target::Slides => format!("Slide {} of {}", (st.selection.slide + 1).min(n.max(1)), n),
+            deckz_engine::Target::Slides => format!("Slide {} of {}", (st.selection.slide + 1).min(n.max(1)), n),
             _ => "Slide Master".to_string(),
         };
         let p = ui.painter();
@@ -112,7 +112,7 @@ fn labeled(ui: &mut Ui, icon: Icon, label: &str, on: bool) -> egui::Response {
 pub fn notes_pane(app: &mut SlideApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let Some(st) = app.session.active() else { return };
-    if st.selection.target != deckcraft_engine::Target::Slides {
+    if st.selection.target != deckz_engine::Target::Slides {
         return;
     }
     let idx = st.selection.slide;
