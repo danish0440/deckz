@@ -669,12 +669,53 @@ def launcher_patches(root: Path) -> list[str]:
           '.and(None::<String>) // PINTAZ: upstream screenshots show the upstream names; off')
     patch("crates/core/src/catalog.rs", r"pub const SOCIAL: \[\(&str, &str\); 5\] = \[[^\]]*\];",
           "pub const SOCIAL: [(&str, &str); 0] = []; // PINTAZ: no upstream social accounts", flags=re.S)
+    # most famous first (Danish, 15 Oct 2026) + each app's colour = its Z icon v2 colour
+    reorder_suite(root / "crates/core/src/catalog.rs")
+    done.append("crates/core/src/catalog.rs (order + colours)")
     # the launcher has no About window: the credit goes under the Settings title (name + version)
     credit = (lambda m: m.group(0) + f"\n{m.group(1)}// {ABOUT_MARK}: required credit (Apache-2.0 change notice; ArtCraft brand licence)"
               f"\n{m.group(1)}ui.label(egui::RichText::new(\"by PINTAZ\").strong());"
               f"\n{m.group(1)}ui.weak(\"{credit_line('artcraft-launcher')}\");")
     patch("crates/ui-egui/src/dialogs.rs", r'^([ \t]*)Self::title\(ui, Some\(crate::icons::artcraft_mark\(\)\), tl!\("Settings"\)[^\n]*;$', credit, flags=re.M)
     return done
+
+
+# Danish, 15 Oct 2026: "rank most famous software first in list". Colours = icons_v2 backgrounds.
+FAME_ORDER = ["wordz", "gridz", "deckz", "photoz", "pdfz", "filmz", "cadz", "vectorz", "lightz", "effectz", "figz", "designz", "soundz"]
+UPSTREAM_TO_Z = {"wordcraft": "wordz", "gridcraft": "gridz", "deckcraft": "deckz", "photocraft": "photoz", "pdfcraft": "pdfz",
+                 "filmcraft": "filmz", "cadcraft": "cadz", "vectorcraft": "vectorz", "lightcraft": "lightz", "effectcraft": "effectz",
+                 "figcraft": "figz", "designcraft": "designz", "soundcraft": "soundz"}
+Z_COLOURS = {"wordz": "2E62D9", "gridz": "1D9A5B", "deckz": "E35D3A", "photoz": "0B8C9E", "pdfz": "D63A3A", "filmz": "6A3FD0",
+             "cadz": "3E5C6E", "vectorz": "F07F2D", "lightz": "14967F", "effectz": "8E44AD", "figz": "C2338A", "designz": "D9466F", "soundz": "2F3E9E"}
+
+
+def _rgb(h, f):
+    c = [int(h[i:i + 2], 16) for i in (0, 2, 4)]
+    if f < 1:
+        c = [round(v * f) for v in c]
+    else:
+        c = [round(v + (255 - v) * (f - 1)) for v in c]
+    return "[" + ", ".join(f"0x{v:02x}" for v in c) + "]"
+
+
+def reorder_suite(path: Path):
+    t = path.read_text(encoding="utf-8")
+    m = re.search(r"(pub const SUITE: \[CraftApp; 13\] = \[\n)(.*?)(\n\];)", t, flags=re.S)
+    if not m:
+        raise SystemExit("reorder_suite: SUITE array not found")
+    blocks = re.findall(r"    (?:app\(\n.*?\n    \),|CraftApp \{\n.*?\n    \},)", m.group(2), flags=re.S)
+    if len(blocks) != 13:
+        raise SystemExit(f"reorder_suite: expected 13 app blocks, found {len(blocks)}")
+    by = {}
+    for b in blocks:
+        first = re.search(r'app\(\n\s+"([a-z]+)"', b).group(1)
+        zid = UPSTREAM_TO_Z.get(first, first)
+        col = Z_COLOURS[zid]
+        b = re.sub(r"\[\[0x[0-9a-f]{2}, 0x[0-9a-f]{2}, 0x[0-9a-f]{2}\], \[0x[0-9a-f]{2}, 0x[0-9a-f]{2}, 0x[0-9a-f]{2}\], \[0x[0-9a-f]{2}, 0x[0-9a-f]{2}, 0x[0-9a-f]{2}\]\]",
+                   f"[{_rgb(col, 1)}, {_rgb(col, 0.78)}, {_rgb(col, 1.35)}]", b, count=1)
+        by[zid] = b
+    body = "\n".join(by[z] for z in FAME_ORDER)
+    path.write_text(t[:m.start(2)] + body + t[m.end(2):], encoding="utf-8")
 
 
 def leftovers(root: Path) -> list[str]:
