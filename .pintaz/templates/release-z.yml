@@ -23,7 +23,6 @@ env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
   RUST_BACKTRACE: 1
-  FONTS_REF: "@FONTSREF@"
 
 jobs:
   version:
@@ -68,6 +67,9 @@ jobs:
       @ZUPPER@_BUILD_SHA: ${{ github.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Fonts ref (rebrand.py writes upstream's pinned craft-fonts commit to .pintaz/fonts-ref.txt)
+        shell: bash
+        run: echo "FONTS_REF=$(tr -d '[:space:]' < .pintaz/fonts-ref.txt 2>/dev/null || true)" >> "$GITHUB_ENV"
       - name: Check out craft-fonts (OFL fonts, build-time only)
         if: env.FONTS_REF != ''
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -117,6 +119,9 @@ jobs:
       @ZUPPER@_BUILD_SHA: ${{ github.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Fonts ref (rebrand.py writes upstream's pinned craft-fonts commit to .pintaz/fonts-ref.txt)
+        shell: bash
+        run: echo "FONTS_REF=$(tr -d '[:space:]' < .pintaz/fonts-ref.txt 2>/dev/null || true)" >> "$GITHUB_ENV"
       - name: Check out craft-fonts (OFL fonts, build-time only)
         if: env.FONTS_REF != ''
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

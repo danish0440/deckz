@@ -768,6 +768,9 @@ def main():
         if (dst / sub).exists():
             shutil.rmtree(dst / sub)
         shutil.copytree(HERE / sub, dst / sub)
+    # upstream's pinned craft-fonts commit, read by release-z.yml (kept out of the workflow file: a sync
+    # run's GITHUB_TOKEN may not change workflow files)
+    (dst / "fonts-ref.txt").write_text(upstream_fonts_ref(root) + "\n", encoding="utf-8")
     # daily-sync gates (zgate.py, zsmoke.py) and their per-fork records travel with the tool
     for name in ("zgate.py", "zsmoke.py", "licence.sha256", "brand-allow.txt", "workflows-allow.txt"):
         if (HERE / name).is_file() and (HERE / name).resolve() != (dst / name).resolve():
