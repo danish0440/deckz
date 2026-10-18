@@ -121,6 +121,8 @@ def phrase_rules(up_id: str, launcher: bool):
         (re.compile(r"(?<![/\w.])getartcraft\.com/apps/([a-z0-9-]+)"),
          lambda m: f"github.com/{OWNER}/{APPS[m.group(1)][2]}" if m.group(1) in APPS else f"github.com/{OWNER}/{zid}"),
         (re.compile(r"\bon Discord\b"), lambda m: "on GitHub"),
+        # macOS About panel (Credits.rtf, 18 Oct 2026): the visible link text, not only the URL
+        (re.compile(r"(\\fldrslt )getartcraft\.com\}"), lambda m: m.group(1) + f"github.com/{OWNER}/{zid}}}"),
         # our own repo (never a cargo git dependency on another storytold repo)
         (re.compile(r"(?<!git = \")(?<!git\+)(https://github\.com/)?storytold/" + re.escape(up_repo) + r"(?![-\w])"),
          lambda m: (m.group(1) or "") + f"{OWNER}/{zid}"),
@@ -606,8 +608,8 @@ def write_readme(root: Path, up_id: str):
         f"# {zname}\n\nFree app by PINTAZ. Download: the [latest release](https://github.com/{OWNER}/{zid}/releases/latest)"
         f"{' (one download gets all the Z apps)' if zid == 'appz' else ''}.\n\n"
         f"{credit_line(up_id)} See NOTICE, LICENSE-MIT and LICENSE-APACHE.\n\n"
-        f"This repository follows upstream (`storytold/{up_repo}`) through `.github/workflows/upstream-sync-z.yml`, "
-        f"which re-applies `.pintaz/rebrand.py` and opens a pull request. Builds: `.github/workflows/release-z.yml` "
+        f"This repository follows upstream (`storytold/{up_repo}`) every day through `.github/workflows/upstream-sync-z.yml`, "
+        f"which re-applies `.pintaz/rebrand.py`, runs the gates in `.pintaz/zgate.py` and, when they pass, merges and releases. Builds: `.github/workflows/release-z.yml` "
         f"(unsigned Windows x64 MSI + portable zip, macOS universal DMG).\n", encoding="utf-8")
 
 
@@ -703,12 +705,13 @@ def reorder_suite(path: Path):
     m = re.search(r"(pub const SUITE: \[CraftApp; 13\] = \[\n)(.*?)(\n\];)", t, flags=re.S)
     if not m:
         raise SystemExit("reorder_suite: SUITE array not found")
-    blocks = re.findall(r"    (?:app\(\n.*?\n    \),|CraftApp \{\n.*?\n    \},)", m.group(2), flags=re.S)
+    # upstream writes a block over several lines or (since 17 Oct 2026) some on one line
+    blocks = re.findall(r"    (?:app\(\n.*?\n    \),|CraftApp \{\n.*?\n    \},|app\(\"[^\n]*\),)", m.group(2), flags=re.S)
     if len(blocks) != 13:
         raise SystemExit(f"reorder_suite: expected 13 app blocks, found {len(blocks)}")
     by = {}
     for b in blocks:
-        first = re.search(r'app\(\n\s+"([a-z]+)"', b).group(1)
+        first = re.search(r'app\(\s*"([a-z]+)"', b).group(1)
         zid = UPSTREAM_TO_Z.get(first, first)
         col = Z_COLOURS[zid]
         b = re.sub(r"\[\[0x[0-9a-f]{2}, 0x[0-9a-f]{2}, 0x[0-9a-f]{2}\], \[0x[0-9a-f]{2}, 0x[0-9a-f]{2}, 0x[0-9a-f]{2}\], \[0x[0-9a-f]{2}, 0x[0-9a-f]{2}, 0x[0-9a-f]{2}\]\]",
@@ -765,6 +768,10 @@ def main():
         if (dst / sub).exists():
             shutil.rmtree(dst / sub)
         shutil.copytree(HERE / sub, dst / sub)
+    # daily-sync gates (zgate.py, zsmoke.py) and their per-fork records travel with the tool
+    for name in ("zgate.py", "zsmoke.py", "licence.sha256", "brand-allow.txt", "workflows-allow.txt"):
+        if (HERE / name).is_file() and (HERE / name).resolve() != (dst / name).resolve():
+            shutil.copy2(HERE / name, dst / name)
     left = leftovers(root)
     rep = [f"rebrand {up_id} -> {zname}", f"about credit inserted in: {about or 'NOT FOUND'}", f"launcher patches: {lp}",
            f"lines still naming ArtCraft/getartcraft/discord (non-doc): {len(left)}"] + left

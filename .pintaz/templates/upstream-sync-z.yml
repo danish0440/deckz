@@ -1,54 +1,134 @@
-# Weekly: take upstream storytold/@UPREPO@ main, re-apply .pintaz/rebrand.py, open a PR.
-# Never releases by itself: merge the PR, then run "Release Z" by hand.
+# Daily: take upstream storytold/@UPREPO@ main, re-apply .pintaz/rebrand.py, run the gates (.pintaz/zgate.py).
+# Gates pass -> main moves forward to the merge commit (no force), older sync PRs are closed, and
+#               "Release Z" is dispatched with the next zrev (it publishes only if Windows + Mac + smoke test pass).
+# Gates fail -> nothing is merged; a PR labelled needs-human carries the reason. Merging that PR by hand
+#               accepts the new upstream state (it carries the updated .pintaz records); the next run releases it.
 name: Upstream sync Z
 
 on:
   schedule:
-    - cron: "17 2 * * 1" # Mondays 02:17 UTC
+    - cron: "17 2 * * *" # every day 02:17 UTC (10:17 MYT)
   workflow_dispatch:
 
 permissions:
+  actions: write
   contents: write
+  issues: write
   pull-requests: write
+
+concurrency:
+  group: upstream-sync-z
+  cancel-in-progress: false
 
 jobs:
   sync:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - name: Merge upstream and re-brand
+      - name: Merge upstream, re-brand, gate, merge or hold
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPREPO: "@UPREPO@"
+          UPID: "@UPID@"
         run: |
           set -euo pipefail
+          repo="$GITHUB_REPOSITORY"
           python3 -m pip install --quiet --break-system-packages pillow || python3 -m pip install --quiet pillow
           git config user.name "pintaz-sync"
           git config user.email "pintaz-sync@users.noreply.github.com"
-          git remote add upstream https://github.com/storytold/@UPREPO@.git
+          git remote add upstream "https://github.com/storytold/$UPREPO.git"
           git fetch --quiet upstream main
           up=$(git rev-parse upstream/main)
-          if git merge-base --is-ancestor "$up" HEAD; then echo "already up to date with upstream $up"; exit 0; fi
-          branch="upstream-sync/${up:0:9}"
-          if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
-            echo "branch $branch already exists"
-            if [ -z "$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$branch" --state all --json number --jq '.[].number')" ]; then
-              gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" --title "Upstream sync: @UPREPO@ ${up:0:9}" \
-                --body "Upstream storytold/@UPREPO@ at $up, re-branded by .pintaz/rebrand.py. Read .pintaz/rebrand-report.txt, merge, then run Release Z by hand."
+          main=$(git rev-parse HEAD)
+          cp -r .pintaz /tmp/pintaz
+          summary() { echo "$1" | tee -a "$GITHUB_STEP_SUMMARY"; }
+
+          next_zrev() { # $1 = version -> 1 + highest -zN among our releases of that version (1 if none)
+            gh release list --repo "$repo" --limit 200 --json tagName --jq '.[].tagName' > /tmp/tags.txt || true
+            git ls-remote --tags origin | sed 's#.*refs/tags/##; s#\^{}##' >> /tmp/tags.txt
+            python3 - "$1" /tmp/tags.txt <<'PY'
+          import re, sys
+          v, f = sys.argv[1], sys.argv[2]
+          ns = [int(m.group(1)) for t in open(f).read().split() if (m := re.fullmatch(r"v" + re.escape(v) + r"-z(\d+)", t))]
+          print(max(ns, default=0) + 1)
+          PY
+          }
+          version_at() { # $1 = commit -> [workspace.package] version of Cargo.toml
+            git cat-file blob "$1:Cargo.toml" | awk '/^\[/ { in_pkg = ($0 == "[workspace.package]"); next } in_pkg && $1 == "version" { gsub(/[" ]/, "", $3); print $3; exit }'
+          }
+          release() { # $1 = commit that main now points at
+            if [ -n "$(gh run list --repo "$repo" --workflow release-z.yml --json status --jq '.[] | select(.status != "completed") | .status')" ]; then
+              summary "Release Z already running; not dispatching another one."; return 0
             fi
+            v=$(version_at "$1"); [ -n "$v" ] || { echo "::error::no [workspace.package] version"; exit 1; }
+            z=$(next_zrev "$v")
+            gh workflow run release-z.yml --repo "$repo" --ref main -f zrev="$z"
+            summary "Dispatched Release Z: v$v-z$z (commit ${1:0:9})."
+          }
+          close_old_prs() { # $1 = branch to keep ("" = none)
+            gh pr list --repo "$repo" --state open --json number,headRefName --jq '.[] | select(.headRefName | startswith("upstream-sync/")) | "\(.number) \(.headRefName)"' |
+            while read -r n b; do
+              [ "$b" = "$1" ] && continue
+              gh pr close "$n" --repo "$repo" --delete-branch --comment "Superseded: upstream ${up:0:9} handled by the daily sync (run $GITHUB_SERVER_URL/$repo/actions/runs/$GITHUB_RUN_ID)." || true
+            done
+          }
+
+          if git merge-base --is-ancestor "$up" HEAD; then
+            summary "No upstream change (upstream/main $up is in main)."
+            last=$(gh release view --repo "$repo" --json targetCommitish --jq .targetCommitish 2>/dev/null || true)
+            if [ "$last" != "$main" ]; then summary "main ${main:0:9} is not released yet (latest release target: ${last:-none})."; release "$main"; fi
             exit 0
           fi
-          cp -r .pintaz /tmp/pintaz
+
           git checkout --quiet -b work "$up"
           # icons come from the committed masters in .pintaz/icons, so these fonts are only a fallback
           export Z_FONT_SERIF=/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf
           export Z_FONT_SANS=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
-          python3 /tmp/pintaz/rebrand.py . @UPID@
+          python3 /tmp/pintaz/rebrand.py . "$UPID"
           git add -A
           tree=$(git write-tree)
           # one merge commit: parents = our main + upstream, tree = upstream re-branded
-          commit=$(git commit-tree "$tree" -p origin/main -p "$up" -m "Merge upstream @UPREPO@ ${up:0:9} and re-apply rebrand.py")
-          git push --quiet origin "$commit:refs/heads/$branch"
-          gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" --title "Upstream sync: @UPREPO@ ${up:0:9}" \
-            --body "Upstream storytold/@UPREPO@ at $up, re-branded by .pintaz/rebrand.py. Read .pintaz/rebrand-report.txt, merge, then run Release Z by hand."
+          commit=$(git commit-tree "$tree" -p "$main" -p "$up" -m "Merge upstream $UPREPO ${up:0:9} and re-apply rebrand.py")
+          reason=/tmp/gate.md
+          echo "- zgate.py did not finish (see the run log)." > "$reason"
+          if python3 /tmp/pintaz/zgate.py check --base "$main" --up "$up" --merged "$commit" --out "$reason"; then
+            if git push origin "$commit:refs/heads/main"; then
+              summary "Gates passed; main moved to ${commit:0:9} (upstream ${up:0:9})."
+              close_old_prs ""
+              release "$commit"
+              exit 0
+            fi
+            printf '%s\n' "- PUSH: the gates passed but GitHub refused to move main (see the run log)." >> "$reason"
+          fi
+
+          # HOLD: keep main as it is; put the merge on a branch with a needs-human PR.
+          python3 /tmp/pintaz/zgate.py record --up "$up" --dir .
+          git add -A
+          held=$(git commit-tree "$(git write-tree)" -p "$main" -p "$up" -m "Merge upstream $UPREPO ${up:0:9} and re-apply rebrand.py (HELD by the gates)")
+          branch="upstream-sync/${up:0:9}-${main:0:7}"
+          if ! git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
+            git push --quiet origin "$held:refs/heads/$branch"
+          fi
+          gh label create needs-human --repo "$repo" --color D93F0B --description "Daily sync held by a gate" 2>/dev/null || true
+          {
+            echo "Upstream storytold/$UPREPO at $up, re-branded by .pintaz/rebrand.py. **Not merged: a gate failed.**"
+            echo
+            cat "$reason"
+            echo
+            echo "Merging this PR accepts the new upstream state: it also updates .pintaz/licence.sha256, brand-allow.txt and workflows-allow.txt. Check the reasons first. The next daily run then releases it."
+            echo
+            echo "Run: $GITHUB_SERVER_URL/$repo/actions/runs/$GITHUB_RUN_ID"
+          } > /tmp/body.md
+          pr=$(gh pr list --repo "$repo" --head "$branch" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$pr" ]; then
+            gh pr edit "$pr" --repo "$repo" --body-file /tmp/body.md --add-label needs-human
+          else
+            gh pr create --repo "$repo" --base main --head "$branch" --title "Upstream sync (held): $UPREPO ${up:0:9}" --body-file /tmp/body.md --label needs-human
+          fi
+          close_old_prs "$branch"
+          summary "HELD: gates failed, PR on $branch."
+          cat "$reason" >> "$GITHUB_STEP_SUMMARY"
+          echo "::warning::upstream sync held by the gates (needs-human PR on $branch)"

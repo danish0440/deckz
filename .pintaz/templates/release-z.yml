@@ -1,14 +1,16 @@
 # @ZNAME@ release (PINTAZ). Unsigned builds: Windows x64 (MSI + portable zip), macOS universal (DMG).
-# Run it from the Actions tab (workflow_dispatch). Makes the GitHub release v<version>-z<N>.
+# Dispatched by "Upstream sync Z" after a gated merge, or by hand from the Actions tab (zrev "auto" = next free).
+# Publishes the GitHub release v<version>-z<N> ONLY when the Windows build + smoke test and the Mac build all pass;
+# the release is assembled as a draft, checked, then made public in one step (never a half release).
 name: Release Z
 
 on:
   workflow_dispatch:
     inputs:
       zrev:
-        description: "Z revision: the tag is v<Cargo.toml version>-z<zrev>"
+        description: "Z revision: the tag is v<Cargo.toml version>-z<zrev> (auto = 1 + highest existing for this version)"
         type: string
-        default: "1"
+        default: "auto"
 
 permissions:
   contents: write
@@ -29,14 +31,30 @@ jobs:
     outputs:
       version: ${{ steps.v.outputs.version }}
       date: ${{ steps.v.outputs.date }}
+      tag: ${{ steps.v.outputs.tag }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - id: v
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ZREV: ${{ inputs.zrev }}
         run: |
+          set -euo pipefail
           v=$(awk '/^\[/ { in_pkg = ($0 == "[workspace.package]"); next } in_pkg && $1 == "version" { gsub(/[" ]/, "", $3); print $3; exit }' Cargo.toml)
           [ -n "$v" ] || { echo "::error::no [workspace.package] version"; exit 1; }
+          gh release list --repo "$GITHUB_REPOSITORY" --limit 200 --json tagName --jq '.[].tagName' > /tmp/tags.txt
+          git ls-remote --tags origin | sed 's#.*refs/tags/##; s#\^{}##' >> /tmp/tags.txt
+          if [ "$ZREV" = "auto" ]; then
+            ZREV=$(grep -E "^v${v//./\\.}-z[0-9]+$" /tmp/tags.txt | sed 's/.*-z//' | sort -n | tail -1 || true)
+            ZREV=$(( ${ZREV:-0} + 1 ))
+          fi
+          [[ "$ZREV" =~ ^[0-9]+$ ]] || { echo "::error::zrev must be a number or auto"; exit 1; }
+          tag="v$v-z$ZREV"
+          if grep -qx "$tag" /tmp/tags.txt; then echo "::error::$tag already exists; pick a new zrev"; exit 1; fi
           echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+          echo "Release tag: $tag" >> "$GITHUB_STEP_SUMMARY"
 
   windows:
     needs: version
@@ -78,6 +96,9 @@ jobs:
       - name: Build and package (unsigned)
         shell: pwsh
         run: ./packaging/windows/package.ps1 -Arch x64
+      - name: Smoke test (headless CLI + package checks; the GUI is never started)
+        shell: pwsh
+        run: python .pintaz/zsmoke.py dist/release @ZID@ $env:VERSION
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-windows-x64
@@ -123,6 +144,13 @@ jobs:
           fi
       - name: Build and package (ad-hoc signed, not notarized)
         run: packaging/macos/package.sh --arch universal
+      - name: Check the DMG
+        run: |
+          set -euo pipefail
+          ls -l dist/release
+          dmg=$(ls dist/release/@ZID@-"$VERSION"-macos-universal.dmg)
+          [ "$(stat -f %z "$dmg")" -gt 2000000 ] || { echo "::error::DMG too small"; exit 1; }
+          hdiutil imageinfo "$dmg" >/dev/null
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-macos
@@ -138,19 +166,29 @@ jobs:
           pattern: release-*
           path: artifacts
           merge-multiple: true
-      - name: Publish the release
+      - name: Publish the release (draft, check, then public)
         working-directory: artifacts
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-          TAG: v${{ needs.version.outputs.version }}-z${{ inputs.zrev }}
+          TAG: ${{ needs.version.outputs.tag }}
+          VERSION: ${{ needs.version.outputs.version }}
         run: |
+          set -euo pipefail
+          for s in -windows-x64.msi -windows-x64-portable.zip -macos-universal.dmg; do
+            [ -f "@ZID@-$VERSION$s" ] || { echo "::error::missing @ZID@-$VERSION$s"; exit 1; }
+          done
           sha256sum -- * | tee SHA256SUMS.txt
+          n=$(find . -maxdepth 1 -type f | wc -l)
           printf '%s\n\n%s\n' \
             "@ZNAME@ ${TAG#v}: free app by PINTAZ. Unsigned build: on Windows choose More info, then Run anyway; on Mac right-click the app, then Open." \
             "Based on the upstream project storytold/@UPREPO@ (Apache-2.0); see NOTICE." > ../notes.md
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" --clobber -- *
-          else
-            gh release create "$TAG" --title "@ZNAME@ ${TAG#v}" --target "$GITHUB_SHA" --notes-file ../notes.md --latest -- *
+          gh release create "$TAG" --draft --title "@ZNAME@ ${TAG#v}" --target "$GITHUB_SHA" --notes-file ../notes.md -- *
+          got=$(gh release view "$TAG" --json assets --jq '[.assets[] | select(.state == "uploaded")] | length')
+          if [ "$got" != "$n" ]; then
+            echo "::error::draft has $got of $n assets; deleting the draft, nothing published"
+            gh release delete "$TAG" --yes || true
+            exit 1
           fi
+          gh release edit "$TAG" --draft=false --latest
+          echo "Published $TAG with $n assets." >> "$GITHUB_STEP_SUMMARY"
