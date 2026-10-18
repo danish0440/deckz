@@ -143,9 +143,11 @@ jobs:
           key: release-z-macos-universal
       - name: Tools the packaging script expects (resvg for the DMG background)
         run: |
-          if grep -q "resvg" packaging/macos/package.sh; then
-            v=$(grep -o "resvg --locked --version [0-9.]*" packaging/macos/package.sh | head -1 | awk '{print $NF}')
-            cargo install resvg --locked ${v:+--version $v}
+          if grep -q "resvg" packaging/macos/package.sh && ! command -v resvg >/dev/null; then
+            # the pinned version, written either inline or as RESVG_VERSION=x.y.z (digits only, else latest)
+            v=$( { grep -oE "resvg --locked --version [0-9][0-9.]*" packaging/macos/package.sh | awk '{print $NF}';
+                   grep -oE "RESVG_VERSION=[0-9][0-9.]*" packaging/macos/package.sh | cut -d= -f2; } | head -1)
+            cargo install resvg --locked ${v:+--version "$v"}
           fi
       - name: Build and package (ad-hoc signed, not notarized)
         run: packaging/macos/package.sh --arch universal

@@ -60,7 +60,9 @@ def main():
             r = subprocess.run([str(cli), *args], capture_output=True, text=True, timeout=120, stdin=subprocess.DEVNULL)
             out = (r.stdout + r.stderr).strip()
             print(f"$ {cli.name} {' '.join(args)} -> exit {r.returncode}\n{out[:600]}")
-            if r.returncode != 0 or not out:
+            # some CLIs print their usage and exit 1 on --help (cadz-cli): that still proves it starts headless
+            help_ok = args == ["--help"] and "usage" in out.lower()
+            if not out or (r.returncode != 0 and not help_ok):
                 fail(f"{cli.name} {' '.join(args)} failed (exit {r.returncode})")
             if args == ["--version"] and version not in out:
                 fail(f"{cli.name} --version does not print {version}")
