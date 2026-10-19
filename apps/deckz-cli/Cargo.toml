@@ -17,3 +17,6 @@ path = "src/main.rs"
 deckz-engine = { workspace = true }
 deckz-mcp = { workspace = true }
 serde_json = { workspace = true }
+
+[dev-dependencies]
+zip = { workspace = true }

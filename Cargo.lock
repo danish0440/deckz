@@ -941,6 +941,7 @@ dependencies = [
  "deckz-engine",
  "deckz-mcp",
  "serde_json",
+ "zip",
 ]
 
 [[package]]
