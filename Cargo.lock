@@ -892,7 +892,7 @@ checksum = "0c87e182de0887fd5361989c677c4e8f5000cd9491d6d563161a8f3a5519fc7f"
 
 [[package]]
 name = "deckz"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "arboard",
  "cpal",
@@ -911,7 +911,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-anim"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "deckz-geom",
  "deckz-model",
@@ -920,7 +920,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-av1"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "deckz-bitstream",
  "rayon",
@@ -929,14 +929,14 @@ dependencies = [
 
 [[package]]
 name = "deckz-bitstream"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "proptest",
 ]
 
 [[package]]
 name = "deckz-cli"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "deckz-engine",
  "deckz-mcp",
@@ -946,14 +946,14 @@ dependencies = [
 
 [[package]]
 name = "deckz-color"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "deckz-engine"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "deckz-anim",
  "deckz-color",
@@ -978,7 +978,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-fonts"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "epaint_default_fonts",
  "harfrust 0.13.3",
@@ -990,7 +990,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-format"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "deckz-model",
  "serde",
@@ -1001,7 +1001,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-geom"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "kurbo",
  "serde",
@@ -1009,7 +1009,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-h264"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "deckz-bitstream",
  "rayon",
@@ -1018,7 +1018,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-hevc"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "deckz-bitstream",
  "rayon",
@@ -1027,7 +1027,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-isobmff"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "deckz-bitstream",
  "thiserror 2.0.21",
@@ -1035,11 +1035,11 @@ dependencies = [
 
 [[package]]
 name = "deckz-matroska"
-version = "0.8.0"
+version = "0.9.0"
 
 [[package]]
 name = "deckz-mcp"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "deckz-engine",
  "deckz-render",
@@ -1049,7 +1049,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-media"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "deckz-av1",
  "deckz-h264",
@@ -1067,7 +1067,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-metafile"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "image",
  "kurbo",
@@ -1076,7 +1076,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-model"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "deckz-color",
  "deckz-geom",
@@ -1088,15 +1088,15 @@ dependencies = [
 
 [[package]]
 name = "deckz-ogg"
-version = "0.8.0"
+version = "0.9.0"
 
 [[package]]
 name = "deckz-opus"
-version = "0.8.0"
+version = "0.9.0"
 
 [[package]]
 name = "deckz-pdf"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "craft-pdf",
  "deckz-fonts",
@@ -1114,7 +1114,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-pptx"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "deckz-color",
  "deckz-engine",
@@ -1130,7 +1130,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-render"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "deckz-anim",
  "deckz-color",
@@ -1149,7 +1149,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-text"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "chrono",
  "deckz-color",
@@ -1163,7 +1163,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-ui-egui"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "deckz-anim",
  "deckz-color",
@@ -1185,7 +1185,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-vp9"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "deckz-bitstream",
  "rayon",
@@ -1194,7 +1194,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-web"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "deckz-engine",
  "deckz-ui-egui",
@@ -5721,7 +5721,7 @@ checksum = "9440ea3e5aeabb0ac63af70daf835274065238cdd0cec83418f417eae38bacee"
 
 [[package]]
 name = "xtask"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "serde_json",
 ]
