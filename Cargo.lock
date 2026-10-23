@@ -892,7 +892,7 @@ checksum = "0c87e182de0887fd5361989c677c4e8f5000cd9491d6d563161a8f3a5519fc7f"
 
 [[package]]
 name = "deckz"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "arboard",
  "cpal",
@@ -901,6 +901,7 @@ dependencies = [
  "deckz-ui-egui",
  "eframe",
  "egui",
+ "fmv-macos-events",
  "image",
  "log",
  "rfd",
@@ -911,7 +912,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-anim"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "deckz-geom",
  "deckz-model",
@@ -920,7 +921,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-av1"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "deckz-bitstream",
  "rayon",
@@ -929,14 +930,14 @@ dependencies = [
 
 [[package]]
 name = "deckz-bitstream"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "proptest",
 ]
 
 [[package]]
 name = "deckz-cli"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "deckz-engine",
  "deckz-mcp",
@@ -946,14 +947,14 @@ dependencies = [
 
 [[package]]
 name = "deckz-color"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "deckz-engine"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "deckz-anim",
  "deckz-color",
@@ -978,7 +979,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-fonts"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "epaint_default_fonts",
  "harfrust 0.13.3",
@@ -990,7 +991,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-format"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "deckz-model",
  "serde",
@@ -1001,7 +1002,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-geom"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "kurbo",
  "serde",
@@ -1009,7 +1010,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-h264"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "deckz-bitstream",
  "rayon",
@@ -1018,7 +1019,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-hevc"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "deckz-bitstream",
  "rayon",
@@ -1027,7 +1028,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-isobmff"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "deckz-bitstream",
  "thiserror 2.0.21",
@@ -1035,11 +1036,11 @@ dependencies = [
 
 [[package]]
 name = "deckz-matroska"
-version = "0.9.0"
+version = "0.10.0"
 
 [[package]]
 name = "deckz-mcp"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "deckz-engine",
  "deckz-render",
@@ -1049,7 +1050,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-media"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "deckz-av1",
  "deckz-h264",
@@ -1067,7 +1068,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-metafile"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "image",
  "kurbo",
@@ -1076,7 +1077,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-model"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "deckz-color",
  "deckz-geom",
@@ -1088,15 +1089,15 @@ dependencies = [
 
 [[package]]
 name = "deckz-ogg"
-version = "0.9.0"
+version = "0.10.0"
 
 [[package]]
 name = "deckz-opus"
-version = "0.9.0"
+version = "0.10.0"
 
 [[package]]
 name = "deckz-pdf"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "craft-pdf",
  "deckz-fonts",
@@ -1114,7 +1115,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-pptx"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "deckz-color",
  "deckz-engine",
@@ -1130,7 +1131,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-render"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "deckz-anim",
  "deckz-color",
@@ -1149,7 +1150,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-text"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "chrono",
  "deckz-color",
@@ -1163,7 +1164,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-ui-egui"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "deckz-anim",
  "deckz-color",
@@ -1185,7 +1186,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-vp9"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "deckz-bitstream",
  "rayon",
@@ -1194,7 +1195,7 @@ dependencies = [
 
 [[package]]
 name = "deckz-web"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "deckz-engine",
  "deckz-ui-egui",
@@ -1629,6 +1630,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "98de4bbd547a563b716d8dfa9aad1cb19bfab00f4fa09a6a4ed21dbcf44ce9c4"
 dependencies = [
  "num-traits",
+]
+
+[[package]]
+name = "fmv-macos-events"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "90642cf66dde7f205dc8b42dfe57b47d0f3a29f571b832742883ef512e23fe55"
+dependencies = [
+ "objc2 0.6.5",
+ "objc2-app-kit 0.3.2",
+ "objc2-foundation 0.3.2",
 ]
 
 [[package]]
@@ -5721,7 +5733,7 @@ checksum = "9440ea3e5aeabb0ac63af70daf835274065238cdd0cec83418f417eae38bacee"
 
 [[package]]
 name = "xtask"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "serde_json",
 ]
