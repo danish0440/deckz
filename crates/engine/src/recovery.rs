@@ -44,6 +44,11 @@ pub fn instance_id() -> u64 {
     *ID.get_or_init(|| {
         use std::hash::{BuildHasher, Hasher};
         let mut h = std::collections::hash_map::RandomState::new().build_hasher();
+        // No PIDs and no std::time on wasm (`std::process::id()` and
+        // `SystemTime::now()` panic there): the browser clock stands in.
+        #[cfg(target_arch = "wasm32")]
+        h.write_u64(js_sys::Date::now() as u64);
+        #[cfg(not(target_arch = "wasm32"))]
         h.write_u32(std::process::id());
         #[cfg(not(target_arch = "wasm32"))]
         if let Ok(d) = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) {
@@ -147,13 +152,13 @@ pub fn list(dir: &Path) -> Vec<(u64, Value)> {
     let Ok(rd) = std::fs::read_dir(dir) else { return out };
     for e in rd.flatten() {
         let p = e.path();
-        if p.extension().and_then(|x| x.to_str()) != Some("deckz") {
+        if p.extension().and_then(std::ffi::OsStr::to_str) != Some("deckz") {
             continue;
         }
         if !std::fs::metadata(&p).is_ok_and(|m| m.is_file()) {
             continue;
         }
-        let Some(uid) = p.file_stem().and_then(|s| s.to_str()).and_then(|s| s.parse::<u64>().ok()) else { continue };
+        let Some(uid) = p.file_stem().and_then(std::ffi::OsStr::to_str).and_then(|s| s.parse::<u64>().ok()) else { continue };
         // Metadata is a file on disk: anything but an object (corrupt, hand-edited) counts as none.
         let meta = read_regular(&p.with_extension("json"), MAX_META_BYTES)
             .and_then(|t| serde_json::from_slice::<Value>(&t).ok())
