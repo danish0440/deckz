@@ -828,7 +828,7 @@ fn media(w: &mut W, x: &mut Exp, o: &mut Out, id: u32, s: &Shape, m: &deckz_mode
     }
     w.close("p:nvPr");
     w.close("p:nvPicPr");
-    let poster = deckz_model::style::PictureFill { media: m.poster.unwrap_or_default(), ..Default::default() };
+    let poster = deckz_model::style::PictureFill { media: m.poster.unwrap_or_default(), crop: m.crop, ..Default::default() };
     dml::blip_fill(w, x, o, "p:blipFill", &poster);
     let mut s3 = s.clone();
     s3.fill = None;
