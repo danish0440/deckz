@@ -15,7 +15,11 @@ fn harness() -> Harness<'static, SlideApp> {
     s.execute("format.font", &json!({"family": "Comic Neue"})).unwrap();
     s.execute("format.size", &json!({"size": 40})).unwrap();
     let app = SlideApp::new(s, Services::default());
-    let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
+    // Home's ribbon is wider than it was when this test was written: at 1400 the Editing group
+    // begins at x=1398, so the Replace Fonts button is two pixels wide on screen and a click at
+    // its centre lands outside the window. The ribbon does not scroll sideways, so the window has
+    // to be wide enough to hold it -- 1800 is what the other full-ribbon tests here use.
+    let mut h = Harness::builder().with_size(egui::vec2(1800.0, 1100.0)).with_step_dt(1.0 / 60.0).build_ui_state(
         |ui, app: &mut SlideApp| {
             app.logic(ui.ctx());
             app.ui(ui);
@@ -63,6 +67,7 @@ fn ribbon_button_opens_the_dialog_and_replaces() {
 #[test]
 #[ignore = "writes a screenshot for review"]
 fn screenshot() {
+    let _gpu = crate::gpu_lock::gpu_lock();
     let mut h = harness();
     h.render().unwrap().save("/tmp/replacefonts0.png").unwrap();
     h.state_mut().dialog = Some(crate::dialogs::Dialog::new("replaceFonts"));

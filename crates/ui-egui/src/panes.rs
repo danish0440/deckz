@@ -156,8 +156,8 @@ fn run(app: &mut SlideApp, id: &str, p: Value) {
 }
 
 /// Percent transparency (0 = opaque) of a solid fill, the same number `shape.fill`'s
-/// `transparency` parameter writes as an alpha transform. Anything else — no fill, a
-/// gradient, a picture, a pattern — is 0, because that command only changes a solid.
+/// `transparency` parameter writes as an alpha transform. Anything else (no fill, a
+/// gradient, a picture, a pattern) is 0.
 fn solid_fill_transparency_percent(fill: Option<&Fill>) -> f32 {
     let Some(Fill::Solid { color }) = fill else {
         return 0.0;
@@ -415,6 +415,9 @@ fn format_shape(app: &mut SlideApp, ui: &mut Ui) {
                         run(app, "format.columns", json!({"count": n, "spacing": 18}));
                     }
                 }
+                if ui.small_button("Columns…").clicked() {
+                    run(app, "format.columns", json!({}));
+                }
             });
         }
         "picture" => {
@@ -475,15 +478,29 @@ fn format_shape(app: &mut SlideApp, ui: &mut Ui) {
                     }
                 }
             }
-            color_button(app, ui, "Color", Some("No Fill"), |c| match c {
-                Some(c) => ("shape.fill".into(), json!({"color": cref_param(&c)})),
-                None => ("shape.fill".into(), json!({"none": true})),
-            });
+            // The Color button sets a solid fill, so it shows only for a solid or automatic fill. A
+            // gradient takes its colors from its stops, and a pattern takes them from its Foreground
+            // and Background menus below.
+            if matches!(kind, "solid" | "auto") {
+                color_button(app, ui, "Color", Some("No Fill"), |c| match c {
+                    Some(c) => ("shape.fill".into(), json!({"color": cref_param(&c)})),
+                    None => ("shape.fill".into(), json!({"none": true})),
+                });
+            }
+            // `shape.fill {transparency}` changes a solid fill (an automatic one through its
+            // effective color) and a picture fill; a gradient has a transparency per stop.
+            let transparency = matches!(sh.fill, None | Some(Fill::Solid { .. } | Fill::Picture(_)));
             ui.horizontal(|ui| {
+                if !transparency {
+                    return;
+                }
                 ui.label("Transparency");
                 // Seed from this shape. A shared temp defaulted to 0, so a shape that was
                 // already 40% transparent showed as opaque, and leaving the slider wrote 0.
-                let seed = solid_fill_transparency_percent(sh.fill.as_ref());
+                let seed = match &sh.fill {
+                    Some(Fill::Picture(pf)) => ((1.0 - pf.alpha.unwrap_or(1.0)) * 100.0) as f32,
+                    fill => solid_fill_transparency_percent(fill.as_ref()),
+                };
                 let id = ui.id().with(("ftr", sh.id.0));
                 let mut v: f32 = ui.data_mut(|d| d.get_temp(id).unwrap_or(seed));
                 let r = ui.add(egui::Slider::new(&mut v, 0.0..=100.0).suffix("%"));
@@ -509,6 +526,11 @@ fn format_shape(app: &mut SlideApp, ui: &mut Ui) {
                     let ng = deckz_model::style::Gradient { rotate_with_shape: rot, ..g.clone() };
                     run(app, "shape.fill", json!({"gradient": crate::fillui::gradient_json(&ng)}));
                 }
+            }
+            if let Some(Fill::Pattern(pt)) = &sh.fill
+                && let Some(np) = crate::fillui::pattern_editor(ui, pt, &scheme(app))
+            {
+                run(app, "shape.fill", json!({"pattern": crate::fillui::pattern_json(&np)}));
             }
             ui.add_space(8.0);
             ui.label(egui::RichText::new("Line").font(theme::bold(13.0)));
@@ -871,25 +893,9 @@ fn background(app: &mut SlideApp, ui: &mut Ui) {
             }
         }
         Some(Fill::Pattern(pt)) => {
-            current = Some(json!({"pattern": {"preset": pt.preset, "fg": cref_param(&pt.fg), "bg": cref_param(&pt.bg)}}));
-            ui.horizontal_wrapped(|ui| {
-                for preset in ["pct5", "pct20", "pct50", "ltHorz", "ltVert", "smGrid", "dkDnDiag", "wave", "dotGrid", "weave"] {
-                    if ui.selectable_label(pt.preset == preset, preset).clicked() {
-                        run(app, "design.background", json!({"pattern": {"preset": preset, "fg": cref_param(&pt.fg), "bg": cref_param(&pt.bg)}}));
-                    }
-                }
-            });
-            for (label, fg) in [("Foreground", true), ("Background", false)] {
-                ui.horizontal(|ui| {
-                    ui.label(label);
-                    let r = widgets::drop_button(ui, "Color", vec2(70.0, 20.0), true);
-                    widgets::color_popup(&r).show(|ui| {
-                        if let Some(Some(c)) = widgets::color_grid(ui, &sc, None) {
-                            let (f, b) = if fg { (c, pt.bg.clone()) } else { (pt.fg.clone(), c) };
-                            run(app, "design.background", json!({"pattern": {"preset": pt.preset, "fg": cref_param(&f), "bg": cref_param(&b)}}));
-                        }
-                    });
-                });
+            current = Some(json!({"pattern": crate::fillui::pattern_json(pt)}));
+            if let Some(np) = crate::fillui::pattern_editor(ui, pt, &sc) {
+                run(app, "design.background", json!({"pattern": crate::fillui::pattern_json(&np)}));
             }
         }
         Some(Fill::Picture(pf)) => {
@@ -1013,13 +1019,31 @@ fn animation(app: &mut SlideApp, ui: &mut Ui) {
     let Some(slide) = st.current_slide() else { return };
     let anims = slide.animations.clone();
     let size = (st.doc.slide_size.width, st.doc.slide_size.height);
-    let effects = deckz_anim::Timeline::new(slide, size.0, size.1).effects();
+    let tl = deckz_anim::Timeline::new(slide, size.0, size.1);
+    let effects = tl.effects();
     let names: Vec<(u32, String)> = st.shapes().iter().map(|s| (s.id.0, s.name.clone())).collect();
     let selected: Vec<u32> = st.selection.shapes.iter().map(|i| i.0).collect();
+    // Play From starts at the effect last clicked here, or else the first effect of the selected
+    // shape; with nothing selected it is Play All. Reordering or removing forgets the click: the
+    // index would point at another effect.
+    let pick_id = egui::Id::new(("anim_pane_pick", st.uid, st.selection.slide));
+    let pick = ui.data(|m| m.get_temp::<usize>(pick_id));
+    // A triggered effect is not on the click sequence, so it can't be played from.
+    let eligible = |i: usize| anims.get(i).is_some_and(|a| selected.contains(&a.shape.0)) && tl.start_of(i).is_some();
+    let from = pick.filter(|&i| eligible(i)).or_else(|| (0..anims.len()).find(|&i| eligible(i)));
     ui.horizontal(|ui| {
         let playing = app.anim_preview_active();
-        if ui.button(if playing { "■ Stop" } else { "▶ Play All" }).clicked() {
-            run(app, "animation.preview", json!({"on": !playing}));
+        let label = match (playing, from) {
+            (true, _) => "■ Stop",
+            (false, Some(_)) => "▶ Play From",
+            (false, None) => "▶ Play All",
+        };
+        if ui.button(label).clicked() {
+            let p = match (playing, from) {
+                (false, Some(i)) => json!({"on": true, "from": i}),
+                _ => json!({"on": !playing}),
+            };
+            run(app, "animation.preview", p);
         }
     });
     ui.separator();
@@ -1041,6 +1065,9 @@ fn animation(app: &mut SlideApp, ui: &mut Ui) {
         let sel = selected.contains(&a.shape.0);
         if sel || resp.hovered() {
             ui.painter().rect_filled(r, CornerRadius::same(4), if sel { t.selected } else { t.hover });
+        }
+        if from == Some(i) {
+            ui.painter().rect_stroke(r, CornerRadius::same(4), Stroke::new(1.5, t.accent), egui::StrokeKind::Inside);
         }
         let p = ui.painter();
         p.text(
@@ -1123,6 +1150,7 @@ fn animation(app: &mut SlideApp, ui: &mut Ui) {
             }
         }
         if resp.clicked() {
+            ui.data_mut(|m| m.insert_temp(pick_id, i));
             run(app, "edit.select", json!({"ids": [a.shape.0]}));
         }
         resp.context_menu(|ui| {
@@ -1134,14 +1162,17 @@ fn animation(app: &mut SlideApp, ui: &mut Ui) {
             }
             ui.separator();
             if ui.button("Move Up").clicked() {
+                ui.data_mut(|m| m.remove::<usize>(pick_id));
                 run(app, "animation.move", json!({"index": i, "to": i.saturating_sub(1)}));
                 ui.close();
             }
             if ui.button("Move Down").clicked() {
+                ui.data_mut(|m| m.remove::<usize>(pick_id));
                 run(app, "animation.move", json!({"index": i, "to": i + 1}));
                 ui.close();
             }
             if ui.button("Remove").clicked() {
+                ui.data_mut(|m| m.remove::<usize>(pick_id));
                 run(app, "animation.remove", json!({"index": i}));
                 ui.close();
             }
@@ -1164,7 +1195,8 @@ fn animation(app: &mut SlideApp, ui: &mut Ui) {
     let _ = paint_anim_tile;
 }
 
-/// Review › Compare: the revised copy's slide-level changes; click to go there, Accept to take it.
+/// Review › Compare: the revised copy's slide-level changes; click to go there, Accept to take it,
+/// Reject to drop it.
 fn revisions(app: &mut SlideApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let Ok(v) = app.session.execute("review.revisions", &json!({})) else {
@@ -1185,9 +1217,14 @@ fn revisions(app: &mut SlideApp, ui: &mut Ui) {
         }
         return;
     }
-    if ui.button(format!("Accept All ({})", changes.len())).clicked() {
-        run(app, "review.accept", json!({"all": true}));
-    }
+    ui.horizontal(|ui| {
+        if ui.button(format!("Accept All ({})", changes.len())).clicked() {
+            run(app, "review.accept", json!({"all": true}));
+        }
+        if ui.button(format!("Reject All ({})", changes.len())).clicked() {
+            run(app, "review.reject", json!({"all": true}));
+        }
+    });
     ui.separator();
     for (i, c) in changes.iter().enumerate() {
         let slide = c["slide"].as_u64().unwrap_or(0);
@@ -1206,6 +1243,9 @@ fn revisions(app: &mut SlideApp, ui: &mut Ui) {
                     run(app, "slide.go", json!({"index": (slide as usize).min(max)}));
                 }
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if ui.small_button("Reject").clicked() {
+                        run(app, "review.reject", json!({"index": i}));
+                    }
                     if ui.small_button("Accept").clicked() {
                         run(app, "review.accept", json!({"index": i}));
                     }
@@ -1446,6 +1486,10 @@ mod smartart_tests;
 mod background_tests;
 
 #[cfg(test)]
+#[path = "pattern_fill_tests.rs"]
+mod pattern_fill_tests;
+
+#[cfg(test)]
 mod tests {
     #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
@@ -1531,6 +1575,75 @@ mod tests {
         h.get_by_label("Transparency").click();
         h.run_steps(2);
         assert_eq!(solid_alpha(h.state(), b), Some(60_000));
+    }
+
+    /// A blank slide with one selected rectangle, its fill set by `fill` (none for an automatic fill),
+    /// in Format Shape ▸ Fill.
+    fn fill_pane(fill: Option<serde_json::Value>) -> Harness<'static, SlideApp> {
+        let mut s = Session::with_new();
+        s.execute("slide.new", &json!({"layout": "blank"})).unwrap();
+        let id = s.execute("shape.insert", &json!({"preset": "rect", "rect": [40.0, 40.0, 120.0, 80.0]})).unwrap()["id"].as_u64().unwrap();
+        s.execute("edit.select", &json!({"ids": [id]})).unwrap();
+        if let Some(p) = fill {
+            s.execute("shape.fill", &p).unwrap();
+        }
+        let mut app = SlideApp::new(s, Services::default());
+        app.ui.pane = Some("format".into());
+        app.ui.format_tab = "fill".into();
+        let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).build_ui_state(
+            |ui, app: &mut SlideApp| {
+                app.logic(ui.ctx());
+                app.ui(ui);
+            },
+            app,
+        );
+        h.run_steps(3);
+        h
+    }
+
+    fn picture_fill(transparency: f64) -> serde_json::Value {
+        let png = deckz_render::Image { width: 2, height: 2, pixels: [255, 0, 0, 255].repeat(4) }.to_png();
+        json!({"picture": deckz_engine::cmd::base64_encode(&png), "transparency": transparency})
+    }
+
+    /// The "Color" drop buttons in the pane: the fill's, when it shows, and the line's.
+    fn color_buttons(h: &Harness<'_, SlideApp>) -> usize {
+        h.query_all_by_role(egui::accesskit::Role::Button).filter(|n| n.accesskit_node().label().is_some_and(|l| l.trim() == "Color")).count()
+    }
+
+    #[test]
+    fn fill_color_and_transparency_show_only_where_they_change_the_fill() {
+        let gradient = json!({"gradient": {"stops": [[0, "accent1"], [1, "accent2"]], "angle": 90}});
+        for (name, fill, color, transparency) in [
+            ("automatic", None, true, 1),
+            ("solid", Some(json!({"color": "accent2"})), true, 1),
+            ("no fill", Some(json!({"none": true})), false, 0),
+            // The one Transparency row left is the selected gradient stop's.
+            ("gradient", Some(gradient), false, 1),
+            ("picture", Some(picture_fill(0.0)), false, 1),
+        ] {
+            let h = fill_pane(fill);
+            let fill_color = color_buttons(&h) == 2;
+            assert_eq!(fill_color, color, "{name}: fill Color button");
+            assert_eq!(h.query_all_by_label("Transparency").count(), transparency, "{name}: Transparency rows");
+        }
+    }
+
+    #[test]
+    fn picture_fill_transparency_slider_shows_the_picture_transparency() {
+        let mut h = fill_pane(Some(picture_fill(0.4)));
+        let alpha = |h: &Harness<'_, SlideApp>| {
+            let doc = h.state().session.active().unwrap();
+            match &doc.selected_shapes()[0].fill {
+                Some(Fill::Picture(pf)) => pf.alpha,
+                other => panic!("expected a picture fill, got {other:?}"),
+            }
+        };
+        let shown = slider_values(&h);
+        assert!(shown.iter().any(|v| (*v - 40.0).abs() < 0.5), "a 40% transparent picture should show 40%, got {shown:?}");
+        h.get_by_label("Transparency").click();
+        h.run_steps(2);
+        assert!(alpha(&h).is_some_and(|a| (a - 0.6).abs() < 1e-9), "{:?}", alpha(&h));
     }
 }
 
