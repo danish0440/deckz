@@ -11,6 +11,9 @@
   UpgradeCode is fixed for DeckZ forever (playbook §6); never change it.
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <?ifndef HasCraftFontLicences ?>
+  <?define HasCraftFontLicences=0 ?>
+  <?endif ?>
   <Package
       Name="DeckZ"
       Manufacturer="Learning Machines LLC"
@@ -38,17 +41,32 @@
     <StandardDirectory Id="ProgramMenuFolder" />
 
     <Feature Id="Main" Title="DeckZ" Level="1">
+      <?if $(var.HasCraftFontLicences) = 1 ?>
+      <ComponentGroupRef Id="CraftFontLicences" />
+      <?endif ?>
       <ComponentGroupRef Id="DeckzFiles" />
     </Feature>
   </Package>
 
   <Fragment>
+    <?if $(var.HasCraftFontLicences) = 1 ?>
+    <ComponentGroup Id="CraftFontLicences" Directory="INSTALLFOLDER">
+      <Files Include="$(var.DocsDir)\**" />
+    </ComponentGroup>
+    <?endif ?>
     <ComponentGroup Id="DeckzFiles" Directory="INSTALLFOLDER">
       <Component Id="DeckzApp" Guid="99346E61-DCE3-544B-B879-4E280F50D5D8">
+        <File Id="DeckzNotice" Source="$(var.BinDir)\NOTICE" KeyPath="no" />
         <File Id="DeckzExe" Source="$(var.BinDir)\deckz.exe" KeyPath="yes">
+          <!-- No Icon here, so the shortcut shows the icon embedded in deckz.exe (build.rs). An
+               MSI Icon is cached under %APPDATA%\Microsoft\Installer\{ProductCode}\, and every
+               update is a major upgrade with a new ProductCode that deletes the old folder. A
+               taskbar pin is a copy of this shortcut that the update never touches, so it kept
+               pointing at the deleted file and lost its icon (#1114). The exe's path survives
+               updates; the shortcut is not advertised, so it targets that path and its icon is the
+               exe's own. The Icon above stays for ARPPRODUCTICON (Apps and features). -->
           <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="DeckZ"
-              Description="DeckZ presentations and slide shows" WorkingDirectory="INSTALLFOLDER" Advertise="yes"
-              Icon="DeckzIcon.ico" IconIndex="0" />
+              Description="DeckZ presentations and slide shows" WorkingDirectory="INSTALLFOLDER" Advertise="no" />
         </File>
 
         <!-- .deckz: DeckZ's own format. -->
