@@ -1,7 +1,7 @@
 rebrand deckcraft -> DeckZ
-about credit inserted in: ['crates/ui-egui/src/dialogs.rs (fallback, after line 2625)']
+about credit inserted in: ['crates/ui-egui/src/dialogs/about.rs (fallback, after line 24)']
 launcher patches: []
 lines still naming ArtCraft/getartcraft/discord (non-doc): 3
-crates/ui-egui/src/dialogs.rs:2626: // PINTAZ-ABOUT: required credit (Apache-2.0 change notice; ArtCraft brand licence)
-crates/ui-egui/src/dialogs.rs:2628: ui.label("Based on DeckCraft by Storytold (ArtCraft), Apache-2.0. Changes by PINTAZ TECHNOLOGIES.");
-crates/ui-egui/src/dialogs.rs:2637: ui.label(egui::RichText::new("MIT OR Apache-2.0 · © 2026 ArtCraft Team and the DeckCraft contributors").size(11.0).color(t.text_faint));
+crates/ui-egui/src/dialogs/about.rs:25: // PINTAZ-ABOUT: required credit (Apache-2.0 change notice; ArtCraft brand licence)
+crates/ui-egui/src/dialogs/about.rs:27: ui.label("Based on DeckCraft by Storytold (ArtCraft), Apache-2.0. Changes by PINTAZ TECHNOLOGIES.");
+crates/ui-egui/src/dialogs/about.rs:36: ui.label(egui::RichText::new("MIT OR Apache-2.0 · © 2026 ArtCraft Team and the DeckCraft contributors").size(11.0).color(t.text_faint));
