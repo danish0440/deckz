@@ -47,6 +47,7 @@ modules:
     build-commands:
       - cargo --offline build --release --locked -p deckz
       - install -Dm755 target/release/deckz /app/bin/deckz
+      - install -Dm644 NOTICE /app/share/doc/deckz/NOTICE
       - install -Dm644 packaging/linux/com.pintaz.deckz.desktop /app/share/applications/com.pintaz.deckz.desktop
       - install -Dm644 packaging/linux/com.pintaz.deckz.mime.xml /app/share/mime/packages/com.pintaz.deckz.xml
       - mkdir -p /app/share/icons && cp -R assets/app-icon/hicolor /app/share/icons/
