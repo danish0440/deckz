@@ -131,11 +131,12 @@ Standard: craftrules `standards/never-crash.md`.
   CLI, control channel and MCP do exactly the same thing.
 - **The UI is thin**: panels read engine state and act through commands. Colours come from theme
   tokens. **Never use Tauri**; egui only.
+- **Time goes through `chrono`** (workspace dependency). Never hand-roll UTC/calendar conversion (days-to-date algorithms, leap-year math); a crate owns only its output format string. The one exception is range extension: past the years chrono can represent, shift the date by whole 400-year Gregorian cycles (146,097 days, after which the calendar repeats), let chrono compute the month and day, and add the cycles back to the year (splitting seconds into hours, minutes and seconds is plain arithmetic).
 - **Never break wasm** (`cargo xtask wasm`).
 
 ## 5. Quality gates (before every commit)
 
-`cargo xtask ci` = fmt check, clippy `-D warnings`, tests, layering check, asset check, wasm
+`cargo xtask ci` = fmt check, clippy `-D warnings`, tests (nextest when installed) and doctests, layering check, asset check, wasm
 check. Commit after each landed arc with a task id in the message (`M1.2: smart guides`) and push
 to `main`.
 
@@ -191,3 +192,8 @@ the `ROADMAP.md` progress log, and update each touched doc's status line and rev
   GitHub profiles). Never hand-edit `contributors.json`.
 - Maintainers refresh the stats with `python3 ../../craftrules/scripts/contributors.py .` (it also
   re-verifies who wrote each `people.toml` entry; `--check` only verifies).
+
+## CI workflows
+- Workflows in `.github/workflows/` call the shared workflows in [`storytold/craft-common-actions`](https://github.com/storytold/craft-common-actions) at `@main`, with their inputs and secrets. No other jobs: if no shared workflow does what's needed, it doesn't go here.
+- Don't add or change CI in a feature or fix PR. If the existing workflows can't build or test a change, link an existing craft-common-actions issue or PR, or open a new issue, or a PR only for a small fix that is safe for every app and does not increase CI time.
+- Some workflow files here still run their own jobs. Don't add to them. Moving a job into craft-common-actions is its own task, never part of another PR, and the job stays here until a shared workflow runs it.
