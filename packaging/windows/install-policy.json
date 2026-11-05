@@ -1,0 +1,81 @@
+{
+  "id": "deckz",
+  "name": "DeckZ",
+  "upgradeCode": "6F9C69E7-7825-40D2-BF26-C274DA676425",
+  "sources": [
+    "deckz.wxs"
+  ],
+  "icon": "assets/app-icon/deckz.ico",
+  "localization": [],
+  "extensions": [
+    "UI"
+  ],
+  "payloads": [
+    "NOTICE",
+    "deckz-cli.exe",
+    "deckz.exe"
+  ],
+  "registry": [
+    [
+      "-1",
+      "Software\\Classes\\Applications\\deckz.exe",
+      "FriendlyAppName",
+      "DeckZ"
+    ],
+    [
+      "-1",
+      "Software\\Classes\\Applications\\deckz.exe\\shell\\open\\command",
+      "",
+      "\"[#DeckzExe]\" \"%1\""
+    ],
+    [
+      "-1",
+      "Software\\Classes\\Applications\\deckz.exe\\SupportedTypes",
+      ".deckz",
+      ""
+    ],
+    [
+      "-1",
+      "Software\\Classes\\Applications\\deckz.exe\\SupportedTypes",
+      ".pptx",
+      ""
+    ],
+    [
+      "-1",
+      "Software\\Classes\\Applications\\deckz.exe\\SupportedTypes",
+      ".potx",
+      ""
+    ],
+    [
+      "-1",
+      "Software\\Classes\\Applications\\deckz.exe\\SupportedTypes",
+      ".ppsx",
+      ""
+    ],
+    [
+      "-1",
+      "Software\\Classes\\.pptx\\OpenWithProgids",
+      "DeckZ.Presentation",
+      ""
+    ],
+    [
+      "-1",
+      "Software\\Classes\\.potx\\OpenWithProgids",
+      "DeckZ.Presentation",
+      ""
+    ],
+    [
+      "-1",
+      "Software\\Classes\\.ppsx\\OpenWithProgids",
+      "DeckZ.Presentation",
+      ""
+    ],
+    [
+      "-1",
+      "Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\deckz.exe",
+      "",
+      "[#DeckzExe]"
+    ]
+  ],
+  "mode": "dualScope"
+}
