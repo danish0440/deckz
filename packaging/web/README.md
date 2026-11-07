@@ -65,11 +65,76 @@ Local test: `python3 -m http.server 8765` inside the folder, then open http://lo
 - The app fills the iframe and follows its size, so size the iframe and not the app.
 - Keyboard shortcuts go to the iframe after the user clicks into it, as with any embedded app.
 - **Cross-origin embeds** work. The web build keeps no preferences between visits; it starts
-  with the sample deck (or `?blank`) every time.
+  with the sample deck (or `?blank`) every time. Opening and saving through the page
+  (`?host=parent`, below) needs the same origin.
 - **Sandboxed iframes** need at least
   `sandbox="allow-scripts allow-same-origin allow-downloads allow-popups"`. Without `allow-downloads`, Save and Export (browser
-  downloads) are blocked.
+  downloads) are blocked. With `?host=parent`, `allow-scripts allow-same-origin` is enough for
+  opening and saving (without `allow-same-origin` the frame's origin is `null` and there is no
+  bridge), and `allow-downloads` isn't needed.
 - Don't send `X-Frame-Options: DENY` or a `frame-ancestors` CSP that excludes the embedding page.
+
+## Opening and saving through the page (`?host=parent`)
+
+A page that keeps the files itself (a Nextcloud app, a file server) can frame DeckZ with
+`?host=parent` on the iframe `src`, hand it a presentation and take back what it saves, instead of
+the user downloading. GridZ, WordZ and PdfZ have the same bridge with their own prefix.
+The page and DeckZ must be on the **same origin**: DeckZ only hears and answers its parent
+window on its own origin, and without one it downloads as usual.
+
+Messages are plain objects with a `type`:
+
+| Message | Direction | Fields |
+|---|---|---|
+| `deckz:ready` | to the page | `version`, `appVersion`. The app runs and listens: send the file now. |
+| `deckz:open` | from the page | `name` (a bare file name, such as `Talk.pptx`), `bytes` (`ArrayBuffer` or `Uint8Array`). Opens like File › Open: a presentation (.pptx, .potx, .ppsx, .deckz) has that name as its file; an outline (.txt, .md, .rtf), a file sent without a name and a damaged file open untitled. |
+| `deckz:save` | to the page | `name`, `saveAs`, `bytes` (a transferred `ArrayBuffer`), for every file DeckZ would otherwise download. The page stores it. |
+| `deckz:dirty` | to the page | `dirty`, whenever unsaved changes appear or go away. |
+| `deckz:failed` | to the page | `error`, when the app couldn't start (no WebGPU or WebGL2) or refused a file of 2 GiB or larger. |
+
+`saveAs` says whether the file becomes the presentation's file, as on the desktop:
+
+- **Save** sends the file the page sent, under its own name and format (`Talk.pptx` comes back
+  as `Talk.pptx`), with `saveAs: false`. DeckZ keeps only the part after the last `/`, so
+  `docs/Talk.pptx` also comes back as `Talk.pptx`. A presentation that has no file the page sent
+  (a new one, an outline, a file sent without a name, a file the user dropped, a repaired copy of
+  a damaged file) is a new file with `saveAs: true`: Ctrl+S names it `<title>.deckz` as Save
+  suggests on the desktop, and File › Save opens the Save As page first, as on the desktop.
+- **Save As** (.pptx or .deckz) sends `saveAs: true`. The presentation is now that file; the
+  next Save sends its name with `saveAs: false`.
+- **Exports and Print** (PDF, handouts, pictures, outline, GIF) send `saveAs: false` and are
+  copies: the presentation keeps its file and its unsaved changes.
+
+`saveAs: false` doesn't mean "safe to overwrite": an export is `false` under a name the page may
+already hold (`Talk.pdf`, or `Talk.pptx` exported from a presentation that is now
+`Talk.deckz`). Replace a file without asking only when the name is the one the page sent, or
+the name of the last `saveAs: true` file it stored for this presentation; ask for anything else.
+DeckZ doesn't learn the name the page finally stores a Save As under, so a page that renames
+on a conflict should map later Saves of the old name itself.
+
+In host mode DeckZ starts with an empty presentation instead of the sample, and the first
+presentation the page sends takes its place unless the user has changed it; later ones open
+beside it. The page guards leaving itself (DeckZ adds no guard of its own), and
+`&author=Name` signs the user's comments.
+
+```html
+<iframe id="deck" src="/deckz/?host=parent&author=Ada" style="width: 100%; height: 720px; border: 0;"></iframe>
+<script>
+  const frame = document.getElementById("deck");
+  addEventListener("message", async (e) => {
+    if (e.origin !== location.origin || e.source !== frame.contentWindow) return;
+    if (e.data.type === "deckz:ready") {
+      const bytes = await (await fetch("/files/Talk.pptx")).arrayBuffer();
+      frame.contentWindow.postMessage({ type: "deckz:open", name: "Talk.pptx", bytes }, location.origin, [bytes]);
+    } else if (e.data.type === "deckz:save") {
+      // Store e.data.bytes as e.data.name. Replace silently only when !e.data.saveAs and the name
+      // is the one sent (or the last saveAs file stored); ask before replacing anything else.
+    }
+  });
+</script>
+```
+
+The messages and both transports are the shared contract of [`craft-web-host`](https://github.com/storytold/craft-libs/tree/main/crates/web-host) (storytold/craft-libs#420), the same for every Craft app: its README lists every message, including `saved`, with the compatibility notes. In `deckz:ready`, `version` is the contract's (`"1"`) and `appVersion` is this app's release. DeckZ reads bytes, so a host sends `bytes`, not a `File`.
 
 ## Renderer selection and fallback flags
 
@@ -82,6 +147,7 @@ DeckZ renders with wgpu. It uses **WebGPU** when the browser has it and falls ba
 | `?webgl` | Force the WebGL2 backend (useful when a WebGPU driver misbehaves) |
 | `?blank` | Start with an empty presentation instead of the sample deck |
 | `?show` | Start the slide show immediately (kiosk/embedded decks) |
+| `?host=parent` | Open and save through the framing page ([above](#opening-and-saving-through-the-page-hostparent)); `&author=` names the user |
 
 For example: `<iframe src="https://example.com/deckz/?webgl" ...>`.
 
