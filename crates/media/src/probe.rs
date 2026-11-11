@@ -48,6 +48,19 @@ fn ms(secs: f64) -> u64 {
 
 /// Probe `bytes`.
 pub fn probe(bytes: &Bytes) -> Result<MediaInfo> {
+    let mut info = probe_headers(bytes)?;
+    if info.duration_ms == 0 && info.audio.as_ref().is_some_and(|a| a.decodable) && info.video.is_none() {
+        // No length in the header (raw MP3 / ADTS without an index): decode to measure.
+        if let Ok(pcm) = crate::audio::decode(bytes) {
+            info.duration_ms = ms(pcm.duration());
+        }
+    }
+    Ok(info)
+}
+
+/// [`probe`] from the headers alone, without decoding: a raw MP3 or ADTS stream without an
+/// index reports a `duration_ms` of 0.
+pub fn probe_headers(bytes: &Bytes) -> Result<MediaInfo> {
     let c = Container::sniff(bytes);
     let mut info = match c {
         Container::Mp4 => probe_mp4(bytes)?,
@@ -58,7 +71,8 @@ pub fn probe(bytes: &Bytes) -> Result<MediaInfo> {
     };
     if info.audio.is_none() && info.video.is_none() || info.audio.as_ref().is_some_and(|a| a.sample_rate == 0) {
         // Plain audio files (and anything our demuxers didn't describe): symphonia's probe.
-        if c == Container::Mp4 && !crate::mp4guard::tables_fit(bytes) {
+        // Symphonia opens an MP4 wherever its probe finds an `ftyp` (after leading ID3v2 tags too); other known containers (a WAV's audio bytes can spell an `ftyp`) skip the check.
+        if matches!(c, Container::Mp4 | Container::Unknown | Container::Mp3) && !crate::mp4guard::probe_fits(bytes) {
             return Err(MediaError::Corrupt("the MP4's sample tables do not fit the file".into()));
         }
         let (codec, rate, channels, frames) = std::panic::catch_unwind(|| crate::audio::probe_symphonia(bytes, c.name()))
@@ -71,12 +85,6 @@ pub fn probe(bytes: &Bytes) -> Result<MediaInfo> {
             && rate > 0
         {
             info.duration_ms = ms(n as f64 / rate as f64);
-        }
-    }
-    if info.duration_ms == 0 && info.audio.as_ref().is_some_and(|a| a.decodable) && info.video.is_none() {
-        // No length in the header (raw MP3 / ADTS without an index): decode to measure.
-        if let Ok(pcm) = crate::audio::decode(bytes) {
-            info.duration_ms = ms(pcm.duration());
         }
     }
     Ok(info)

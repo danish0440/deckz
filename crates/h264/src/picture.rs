@@ -160,6 +160,14 @@ impl Frame {
         self.rows.len()
     }
 
+    /// Sample bytes this picture holds (luma and both chroma planes), as the decoder's memory
+    /// budget counts a picture.
+    pub fn bytes(&self) -> u64 {
+        (self.width as u64)
+            .saturating_mul(self.height as u64)
+            .saturating_add((self.cwidth as u64).saturating_mul(self.cheight as u64).saturating_mul(2))
+    }
+
     /// Publish MB row `r` (ignored if already published).
     pub fn publish(&self, r: usize, row: FrameRow) {
         let _ = self.rows[r].set(row);
@@ -250,7 +258,7 @@ impl Frame {
 
     /// Copy the w x h window of chroma component `c` at (x0, y0) (clamped) into `out`.
     #[inline]
-    pub fn chroma_window(&self, c: usize, x0: i32, y0: i32, w: usize, h: usize, out: &mut [u8], os: usize) {
+    pub fn chroma_window(&self, c: usize, (x0, y0): (i32, i32), (w, h): (usize, usize), out: &mut [u8], os: usize) {
         let (cw, ch) = (self.cwidth, self.cheight);
         for r in 0..h {
             let yy = (y0 + r as i32).clamp(0, ch as i32 - 1) as usize;
@@ -301,7 +309,7 @@ fn plane_allocator() -> fn(usize) -> Vec<u8> {
 fn copy_line<const N: usize>(line: &[u8], x0: i32, out: &mut [u8], w: usize) {
     if w <= N
         && x0 >= 0
-        && let Some(src) = line.get(x0 as usize..).and_then(|l| l.first_chunk::<N>())
+        && let Some(src) = line.get(x0 as usize..).and_then(<[_]>::first_chunk::<N>)
         && let Some(dst) = out.first_chunk_mut::<N>()
     {
         *dst = *src;
