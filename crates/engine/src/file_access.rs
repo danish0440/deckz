@@ -35,8 +35,8 @@ pub enum Access {
 /// The folders automation may read and write; a root left out grants no access of its kind.
 #[derive(Debug)]
 pub struct AutomationRoots {
-    read: Option<Root>,
-    write: Option<Root>,
+    read: Vec<Root>,
+    write: Vec<Root>,
 }
 
 #[derive(Debug)]
@@ -62,46 +62,53 @@ impl Root {
 }
 
 impl AutomationRoots {
-    /// The roots `read` and `write`, which must be existing folders; `None` when neither is given
+    /// The read and write roots, which must be existing folders; `None` when both are empty
     /// (nothing is confined then).
-    pub fn new(read: Option<&Path>, write: Option<&Path>) -> Result<Option<Arc<Self>>, String> {
-        if read.is_none() && write.is_none() {
+    pub fn new(read: &[PathBuf], write: &[PathBuf]) -> Result<Option<Arc<Self>>, String> {
+        if read.is_empty() && write.is_empty() {
             return Ok(None);
         }
-        let read = read.map(|p| Root::open(p, Access::Read)).transpose()?;
-        let write = write.map(|p| Root::open(p, Access::Write)).transpose()?;
+        let read = read.iter().map(|p| Root::open(p, Access::Read)).collect::<Result<_, _>>()?;
+        let write = write.iter().map(|p| Root::open(p, Access::Write)).collect::<Result<_, _>>()?;
         Ok(Some(Arc::new(Self { read, write })))
     }
 
-    /// The read root, absolute with its links followed.
-    pub fn read_root(&self) -> Option<&Path> {
-        self.read.as_ref().map(|r| r.shown.as_path())
+    /// The read roots, absolute with their links followed.
+    pub fn read_roots(&self) -> impl Iterator<Item = &Path> {
+        self.read.iter().map(|r| r.shown.as_path())
     }
 
-    /// The write root, absolute with its links followed.
-    pub fn write_root(&self) -> Option<&Path> {
-        self.write.as_ref().map(|r| r.shown.as_path())
+    /// The write roots, absolute with their links followed.
+    pub fn write_roots(&self) -> impl Iterator<Item = &Path> {
+        self.write.iter().map(|r| r.shown.as_path())
     }
 
     /// May the file or folder at `path` be read (or written)? `Err` says why not.
     pub fn check(&self, path: &str, access: Access) -> Result<(), String> {
-        let root = match access {
-            Access::Read => self.read.as_ref(),
-            Access::Write => self.write.as_ref(),
+        self.check_path(Path::new(path), access)
+    }
+
+    /// [`Self::check`] for a path that may not be UTF-8: the checked path is the one opened.
+    pub fn check_path(&self, path: &Path, access: Access) -> Result<(), String> {
+        let path_text = path.display();
+        let roots = match access {
+            Access::Read => &self.read,
+            Access::Write => &self.write,
         };
-        let Some(Root { resolved: folder, shown }) = root else {
+        if roots.is_empty() {
             return match access {
-                Access::Read => Err(format!("automation filesystem access is not granted: read authority is absent: {path}")),
-                Access::Write => Err(format!("automation filesystem access is not granted: write authority is absent: {path}")),
+                Access::Read => Err(format!("automation filesystem access is not granted: read authority is absent: {path_text}")),
+                Access::Write => Err(format!("automation filesystem access is not granted: write authority is absent: {path_text}")),
             };
-        };
-        if inside(&resolve(path)?, folder) {
+        }
+        let resolved = resolve(path)?;
+        if roots.iter().any(|root| inside(&resolved, &root.resolved)) {
             return Ok(());
         }
-        let root = shown.display();
+        let roots = roots.iter().map(|root| root.shown.display().to_string()).collect::<Vec<_>>().join(", ");
         match access {
-            Access::Read => Err(format!("automation path rejected: outside the read root {root}: {path}")),
-            Access::Write => Err(format!("automation path rejected: outside the write root {root}: {path}")),
+            Access::Read => Err(format!("automation path rejected: outside the read roots {roots}: {path_text}")),
+            Access::Write => Err(format!("automation path rejected: outside the write roots {roots}: {path_text}")),
         }
     }
 }
@@ -190,17 +197,23 @@ pub fn check_write(path: &str) -> Result<(), String> {
     current().map_or(Ok(()), |r| r.check(path, Access::Write))
 }
 
+/// May `path` be written here? Always, without roots in force. For a path that may not be UTF-8.
+pub fn check_write_path(path: &Path) -> Result<(), String> {
+    current().map_or(Ok(()), |r| r.check_path(path, Access::Write))
+}
+
 /// `path` made absolute with its links followed; for a path that doesn't exist (yet), its nearest
 /// existing folder's links followed and the rest appended.
-fn resolve(path: &str) -> Result<PathBuf, String> {
-    if path.is_empty() {
+fn resolve(path: &Path) -> Result<PathBuf, String> {
+    if path.as_os_str().is_empty() {
         return Err("automation path rejected: path is empty".into());
     }
+    let shown = path.display();
     // Checked as given: making `…\NUL` absolute gives the device path `\\.\NUL` on Windows.
-    if cfg!(windows) && Path::new(path).components().any(|c| matches!(c, Component::Normal(n) if is_device_name(&n.to_string_lossy()))) {
-        return Err(format!("automation path rejected: reserved device names are not allowed: {path}"));
+    if cfg!(windows) && path.components().any(|c| matches!(c, Component::Normal(n) if is_device_name(&n.to_string_lossy()))) {
+        return Err(format!("automation path rejected: reserved device names are not allowed: {shown}"));
     }
-    let absolute = std::path::absolute(path).map_err(|e| format!("automation path rejected: cannot resolve {path}: {e}"))?;
+    let absolute = std::path::absolute(path).map_err(|e| format!("automation path rejected: cannot resolve {shown}: {e}"))?;
     // The names below the nearest existing folder, last first.
     let mut missing: Vec<OsString> = vec![];
     let mut at = absolute.as_path();
@@ -211,11 +224,11 @@ fn resolve(path: &str) -> Result<PathBuf, String> {
                 return Ok(found);
             }
             Err(e) => match std::fs::symlink_metadata(at) {
-                Ok(m) if m.file_type().is_symlink() => return Err(format!("automation path rejected: a link that leads nowhere: {path}")),
+                Ok(m) if m.file_type().is_symlink() => return Err(format!("automation path rejected: a link that leads nowhere: {shown}")),
                 // There, yet its real path can't be had (no permission): nothing to compare.
-                Ok(_) => return Err(format!("automation path rejected: cannot resolve {path}: {e}")),
+                Ok(_) => return Err(format!("automation path rejected: cannot resolve {shown}: {e}")),
                 Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-                Err(e) => return Err(format!("automation path rejected: cannot resolve {path}: {e}")),
+                Err(e) => return Err(format!("automation path rejected: cannot resolve {shown}: {e}")),
             },
         }
         let parent = at.parent();
@@ -225,12 +238,12 @@ fn resolve(path: &str) -> Result<PathBuf, String> {
                 at = parent;
             }
             (Some(Component::ParentDir), _) => {
-                return Err(format!("automation path rejected: parent traversal below a folder that doesn't exist: {path}"));
+                return Err(format!("automation path rejected: parent traversal below a folder that doesn't exist: {shown}"));
             }
             // Down to the root (or drive) and it doesn't exist either.
             _ => {
                 let e = std::io::Error::from(std::io::ErrorKind::NotFound);
-                return Err(format!("automation path rejected: cannot resolve {path}: {e}"));
+                return Err(format!("automation path rejected: cannot resolve {shown}: {e}"));
             }
         }
     }
@@ -276,7 +289,7 @@ mod tests {
         }
         std::fs::write(base.join("in/a.deckz"), "x").unwrap();
         std::fs::write(base.join("outside/secret.deckz"), "x").unwrap();
-        let roots = AutomationRoots::new(Some(&base.join("in")), Some(&base.join("out"))).unwrap().unwrap();
+        let roots = AutomationRoots::new(&[base.join("in")], &[base.join("out")]).unwrap().unwrap();
         (base, roots)
     }
 
@@ -297,6 +310,17 @@ mod tests {
         let e = roots.check(&s(base.join("in/a.deckz")), Access::Write).unwrap_err();
         assert!(e.contains("outside the write root"), "{e}");
         assert!(roots.check(&s(base.join("out/x.png")), Access::Read).unwrap_err().contains("outside the read root"));
+        let _ = std::fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn any_configured_root_grants_access() {
+        let (base, _) = folders("multiple");
+        let roots = AutomationRoots::new(&[base.join("in"), base.join("in2")], &[base.join("out"), base.join("outside")]).unwrap().unwrap();
+        assert_eq!(roots.check(&s(base.join("in/a.deckz")), Access::Read), Ok(()));
+        assert_eq!(roots.check(&s(base.join("in2/b.deckz")), Access::Read), Ok(()));
+        assert_eq!(roots.check(&s(base.join("out/new.deckz")), Access::Write), Ok(()));
+        assert_eq!(roots.check(&s(base.join("outside/new.deckz")), Access::Write), Ok(()));
         let _ = std::fs::remove_dir_all(base);
     }
 
@@ -336,18 +360,18 @@ mod tests {
     #[test]
     fn a_missing_root_is_an_error_and_none_is_no_confinement() {
         let (base, _) = folders("missing");
-        let e = AutomationRoots::new(Some(&base.join("nope")), None).unwrap_err();
+        let e = AutomationRoots::new(&[base.join("nope")], &[]).unwrap_err();
         assert!(e.starts_with("cannot open the automation read root"), "{e}");
-        let e = AutomationRoots::new(None, Some(&base.join("in/a.deckz"))).unwrap_err();
+        let e = AutomationRoots::new(&[], &[base.join("in/a.deckz")]).unwrap_err();
         assert!(
             e.starts_with("cannot open the automation write root")
                 && e.ends_with(&std::io::Error::from(std::io::ErrorKind::NotADirectory).to_string()),
             "{e}"
         );
-        assert!(AutomationRoots::new(Some(Path::new("")), None).unwrap_err().starts_with("cannot open the automation read root ``"));
-        assert!(AutomationRoots::new(None, None).unwrap().is_none());
+        assert!(AutomationRoots::new(&[PathBuf::new()], &[]).unwrap_err().starts_with("cannot open the automation read root ``"));
+        assert!(AutomationRoots::new(&[], &[]).unwrap().is_none());
         // One root alone grants only its own access.
-        let read_only = AutomationRoots::new(Some(&base.join("in")), None).unwrap().unwrap();
+        let read_only = AutomationRoots::new(&[base.join("in")], &[]).unwrap().unwrap();
         let e = read_only.check(&s(base.join("in/x.deckz")), Access::Write).unwrap_err();
         assert!(e.contains("write authority is absent"), "{e}");
         let _ = std::fs::remove_dir_all(base);
@@ -384,7 +408,7 @@ mod tests {
         assert_eq!(roots.check(&s(base.join("in/alias/x.deckz")), Access::Read), Ok(()));
         // A root given through a link is the folder it leads to.
         assert!(made(&base.join("in"), &base.join("in-link")));
-        let linked = AutomationRoots::new(Some(&base.join("in-link")), None).unwrap().unwrap();
+        let linked = AutomationRoots::new(&[base.join("in-link")], &[]).unwrap().unwrap();
         assert_eq!(linked.check(&s(base.join("in/a.deckz")), Access::Read), Ok(()));
         let _ = std::fs::remove_dir_all(base);
     }
@@ -468,8 +492,20 @@ mod tests {
                 continue;
             }
             let text = std::fs::read_to_string(&path).unwrap();
-            // Test modules (which build their own fixtures) come last in each file.
-            let code = text.split("#[cfg(test)]").next().unwrap_or("");
+            // Test modules (which build their own fixtures) come last in each file; a
+            // `#[cfg(test)]` import near the top doesn't start them.
+            let mut code = text.as_str();
+            let mut from = 0;
+            while let Some(i) = text[from..].find("#[cfg(test)]") {
+                let at = from + i;
+                let next = text[at + "#[cfg(test)]".len()..].trim_start();
+                if ["use ", "pub use ", "pub(crate) use ", "pub(super) use "].iter().any(|p| next.starts_with(p)) {
+                    from = at + 1;
+                    continue;
+                }
+                code = &text[..at];
+                break;
+            }
             for (n, line) in code.lines().enumerate() {
                 let line = line.trim_start();
                 let touches = ["std::fs", "File::open", "File::create", "OpenOptions"].iter().any(|w| line.contains(w));
