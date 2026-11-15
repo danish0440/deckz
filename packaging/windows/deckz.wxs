@@ -1,29 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  DeckZ MSI (WiX Toolset v5: `dotnet tool install -g wix`). Built by package.ps1:
-
-    wix build deckz.wxs -arch x64 -d Version=1.2.3 -d BinDir=... -d IconPath=... -o out.msi
-
-  Per-machine install into Program Files, a Start Menu shortcut, `.deckz` owned by
-  DeckZ, and DeckZ offered under "Open with" for .pptx/.potx/.ppsx (without taking over
-  the user's default app for them).
-
-  UpgradeCode is fixed for DeckZ forever (playbook §6); never change it.
--->
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-  <Package
-      Name="DeckZ"
-      Manufacturer="Learning Machines LLC"
-      Version="$(var.Version)"
-      UpgradeCode="53C65027-F89B-57DA-822F-EEE61F69CDC7"
-      Scope="perMachine"
-      Compressed="yes"
-      Language="1033">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <?ifndef HasCraftFontLicences ?>
+  <?define HasCraftFontLicences=0 ?>
+  <?endif?>
+  <Package Name="DeckZ" Manufacturer="Learning Machines LLC" Version="$(var.Version)" UpgradeCode="53C65027-F89B-57DA-822F-EEE61F69CDC7" Scope="perUserOrMachine" Compressed="yes" Language="1033">
     <SummaryInformation Description="DeckZ presentations and slide shows" Manufacturer="Learning Machines LLC" />
+    <?include $(sys.SOURCEFILEDIR)install-policy.wxi?>
     <!-- Same-version upgrades let successive pre-releases of one X.Y.Z replace each other
          (MSI versions are numeric, so 1.2.3-rc.1 and 1.2.3-rc.2 are both 1.2.3). -->
-    <MajorUpgrade AllowSameVersionUpgrades="yes"
-        DowngradeErrorMessage="A newer version of DeckZ is already installed." />
+    <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of DeckZ is already installed." />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
 
     <Icon Id="DeckzIcon.ico" SourceFile="$(var.IconPath)" />
@@ -33,22 +18,43 @@
     <Property Id="ARPHELPLINK" Value="https://github.com/danish0440/deckz/issues" />
 
     <StandardDirectory Id="ProgramFiles6432Folder">
-      <Directory Id="INSTALLFOLDER" Name="DeckZ" />
+      <Directory Id="CraftSuiteFolder" Name="Upstream">
+        <Directory Id="INSTALLFOLDER" Name="DeckZ" />
+      </Directory>
     </StandardDirectory>
     <StandardDirectory Id="ProgramMenuFolder" />
 
     <Feature Id="Main" Title="DeckZ" Level="1">
+      <?if $(var.HasCraftFontLicences) = 1 ?>
+      <ComponentGroupRef Id="CraftFontLicences" />
+      <?endif?>
       <ComponentGroupRef Id="DeckzFiles" />
     </Feature>
+  <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <UI>
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="InstallDirDlg" Order="2" Condition="NOT Installed" />
+      <Publish Dialog="InstallDirDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="2" Condition="NOT Installed" />
+    </UI>
   </Package>
 
   <Fragment>
+    <?if $(var.HasCraftFontLicences) = 1 ?>
+    <ComponentGroup Id="CraftFontLicences" Directory="INSTALLFOLDER">
+      <Files Include="$(var.DocsDir)\**" />
+    </ComponentGroup>
+    <?endif?>
     <ComponentGroup Id="DeckzFiles" Directory="INSTALLFOLDER">
       <Component Id="DeckzApp" Guid="99346E61-DCE3-544B-B879-4E280F50D5D8">
+        <File Id="DeckzNotice" Source="$(var.BinDir)\NOTICE" KeyPath="no" />
         <File Id="DeckzExe" Source="$(var.BinDir)\deckz.exe" KeyPath="yes">
-          <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="DeckZ"
-              Description="DeckZ presentations and slide shows" WorkingDirectory="INSTALLFOLDER" Advertise="yes"
-              Icon="DeckzIcon.ico" IconIndex="0" />
+          <!-- No Icon here, so the shortcut shows the icon embedded in deckz.exe (build.rs). An
+               MSI Icon is cached under %APPDATA%\Microsoft\Installer\{ProductCode}\, and every
+               update is a major upgrade with a new ProductCode that deletes the old folder. A
+               taskbar pin is a copy of this shortcut that the update never touches, so it kept
+               pointing at the deleted file and lost its icon (#1114). The exe's path survives
+               updates; the shortcut is not advertised, so it targets that path and its icon is the
+               exe's own. The Icon above stays for ARPPRODUCTICON (Apps and features). -->
+          <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="DeckZ" Description="DeckZ presentations and slide shows" WorkingDirectory="INSTALLFOLDER" Advertise="no" />
         </File>
 
         <!-- .deckz: DeckZ's own format. -->
@@ -59,17 +65,18 @@
         </ProgId>
 
         <!-- "Open with" for PowerPoint formats, without becoming the default. -->
-        <RegistryValue Root="HKLM" Key="Software\Classes\Applications\deckz.exe" Name="FriendlyAppName" Value="DeckZ" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\Applications\deckz.exe\shell\open\command" Value="&quot;[#DeckzExe]&quot; &quot;%1&quot;" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\Applications\deckz.exe\SupportedTypes" Name=".deckz" Value="" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\Applications\deckz.exe\SupportedTypes" Name=".pptx" Value="" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\Applications\deckz.exe\SupportedTypes" Name=".potx" Value="" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\Applications\deckz.exe\SupportedTypes" Name=".ppsx" Value="" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\.pptx\OpenWithProgids" Name="DeckZ.Presentation" Value="" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\.potx\OpenWithProgids" Name="DeckZ.Presentation" Value="" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\.ppsx\OpenWithProgids" Name="DeckZ.Presentation" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\deckz.exe" Name="FriendlyAppName" Value="DeckZ" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\deckz.exe\shell\open\command" Value="&quot;[#DeckzExe]&quot; &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\deckz.exe\SupportedTypes" Name=".deckz" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\deckz.exe\SupportedTypes" Name=".pptx" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\deckz.exe\SupportedTypes" Name=".potx" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\deckz.exe\SupportedTypes" Name=".ppsx" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.pptx\OpenWithProgids" Name="DeckZ.Presentation" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.potx\OpenWithProgids" Name="DeckZ.Presentation" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.ppsx\OpenWithProgids" Name="DeckZ.Presentation" Value="" Type="string" />
 
-        <RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\deckz.exe" Value="[#DeckzExe]" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\deckz.exe" Value="[#DeckzExe]" Type="string" />
+      <RegistryValue Root="HKMU" Key="Software\DeckZ" Name="InstallDir" Value="[INSTALLFOLDER]" Type="string" />
       </Component>
 
       <Component Id="DeckzCli">
