@@ -9,6 +9,7 @@ description = "DeckZ engine: sessions, undo history, selection, the command regi
 workspace = true
 
 [dependencies]
+craft-mime = { workspace = true }
 deckz-geom = { workspace = true }
 deckz-color = { workspace = true }
 deckz-model = { workspace = true }
@@ -25,6 +26,7 @@ i_overlay = { workspace = true }
 thiserror = { workspace = true }
 log = { workspace = true }
 image = { workspace = true }
+chrono = { workspace = true }
 
 [dev-dependencies]
 deckz-anim = { workspace = true }
