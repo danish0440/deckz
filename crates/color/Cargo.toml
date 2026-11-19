@@ -9,4 +9,4 @@ description = "DeckZ colour: RGB/HSL, theme colour slots, DrawingML-style colour
 workspace = true
 
 [dependencies]
-serde = { workspace = true }
+craft-drawingml = { workspace = true }
