@@ -1,3 +1,16 @@
-crates/ui-egui/src/dialogs.rs: // PINTAZ-ABOUT: required credit (Apache-2.0 change notice; ArtCraft brand licence)
-crates/ui-egui/src/dialogs.rs: ui.label("Based on DeckCraft by Storytold (ArtCraft), Apache-2.0. Changes by PINTAZ TECHNOLOGIES.");
-crates/ui-egui/src/dialogs.rs: ui.label(egui::RichText::new("MIT OR Apache-2.0 · © 2026 ArtCraft Team and the DeckCraft contributors").size(11.0).color(t.text_faint));
+crates/ui-egui/src/dialogs/about.rs: // PINTAZ-ABOUT: required credit (Apache-2.0 change notice; ArtCraft brand licence)
+crates/ui-egui/src/dialogs/about.rs: ui.label("Based on DeckCraft by Storytold (ArtCraft), Apache-2.0. Changes by PINTAZ TECHNOLOGIES.");
+crates/ui-egui/src/dialogs/about.rs: ui.label(egui::RichText::new("MIT OR Apache-2.0 · © 2026 ArtCraft Team and the DeckCraft contributors").size(11.0).color(t.text_faint));
+packaging/linux/flatpak/com.pintaz.deckz.bundle.yml: - --filesystem=xdg-data/ArtCraft/versions:ro
+packaging/linux/flatpak/com.pintaz.deckz.yml: - --filesystem=xdg-data/ArtCraft/versions:ro
+packaging/windows/check-install-policy.ps1: $directories['CraftSuiteFolder'][1] -ne 'ArtCraft') { throw 'Expected the app under the ArtCraft suite folder.' }
+packaging/windows/check-install-policy.ps1: $machineFolder = (Join-Path $machineRoot "ArtCraft\$($policy.name)") + '\'
+packaging/windows/check-install-policy.ps1: $wanted = if ($scope -eq '1') { $machineFolder } else { (Join-Path $env:LOCALAPPDATA "Programs\ArtCraft\$($policy.name)") + '\' }
+packaging/windows/check-install-policy.ps1: if ($dirs['INSTALLFOLDER'][0] -ne 'CraftSuiteFolder' -or $dirs['CraftSuiteFolder'][1] -ne 'ArtCraft' -or
+packaging/windows/check-install-policy.ps1: throw 'Launcher new-install folder must be under the per-user ArtCraft suite root.'
+packaging/windows/install-policy.wxi: <Control Id="Info" Type="Text" X="20" Y="50" Width="330" Height="30" Text="{\CraftScopeText}An update keeps the existing folder. New copies use the ArtCraft fol
+packaging/windows/install-policy.wxi: <SetProperty Id="INSTALLFOLDER" Action="CraftDefaultMachineFolder" Value="[%ProgramFiles(x86)]\ArtCraft\DeckZ\" After="CraftRestoreUserFolder" Sequence="ui" Con
+packaging/windows/install-policy.wxi: <SetProperty Id="INSTALLFOLDER" Action="CraftDefaultMachineFolder" Value="[%ProgramW6432]\ArtCraft\DeckZ\" After="CraftRestoreUserFolder" Sequence="ui" Conditio
+packaging/windows/install-policy.wxi: <SetProperty Id="INSTALLFOLDER" Action="CraftDefaultMachineFolder32" Value="[%ProgramFiles]\ArtCraft\DeckZ\" After="CraftDefaultMachineFolder" Sequence="ui" Con
+packaging/windows/install-policy.wxi: <SetProperty Id="INSTALLFOLDER" Action="CraftDefaultUserFolder" Value="[LocalAppDataFolder]Programs\ArtCraft\DeckZ\" After="CraftDefaultMachineFolder" Sequence=
+packaging/windows/install-policy.wxi: <SetProperty Id="INSTALLFOLDER" Action="CraftDefaultUserFolder" Value="[LocalAppDataFolder]Programs\ArtCraft\DeckZ\" After="CraftDefaultMachineFolder32" Sequenc
