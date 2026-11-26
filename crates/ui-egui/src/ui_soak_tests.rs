@@ -9,7 +9,7 @@ use std::collections::VecDeque;
 use std::time::{Duration, Instant};
 
 use deckz_engine::Session;
-use egui::{Event, Key, Modifiers, MouseWheelUnit, Pos2, vec2};
+use egui::{Event, Key, Modifiers, MouseWheelSource, MouseWheelUnit, Pos2, vec2};
 use egui_kittest::Harness;
 
 use crate::{Services, SlideApp};
@@ -72,17 +72,20 @@ fn harness() -> Harness<'static, SlideApp> {
     let mut s = Session::new();
     deckz_engine::sample::open_sample(&mut s).unwrap();
     let app = SlideApp::new(s, Services::default());
-    let mut h = Harness::builder().with_size(vec2(W, H)).with_step_dt(1.0 / 60.0).build_ui_state(
-        |ui, app: &mut SlideApp| {
-            app.logic(ui.ctx());
-            app.ui(ui);
-        },
-        app,
-    );
+    let mut h =
+        Harness::builder().with_context_setup(crate::framework::install_headless).with_size(vec2(W, H)).with_step_dt(1.0 / 60.0).build_ui_state(
+            |ui, app: &mut SlideApp| {
+                app.logic(ui.ctx());
+                app.ui(ui);
+            },
+            app,
+        );
     h.run_steps(3);
     h
 }
 
+/// Apply one deterministic random UI/document action and return a label describing it for the
+/// soak log, which is used as context when a later assertion fails.
 fn act(h: &mut Harness<'_, SlideApp>, r: &mut Rng) -> String {
     match r.below(9) {
         0..=2 => {
@@ -128,6 +131,7 @@ fn act(h: &mut Harness<'_, SlideApp>, r: &mut Rng) -> String {
                 delta: vec2(0.0, if r.below(2) == 0 { 3.0 } else { -3.0 }),
                 modifiers: Modifiers::NONE,
                 phase: egui::TouchPhase::Move,
+                source: MouseWheelSource::Wheel,
             });
             format!("scroll {p:?}")
         }

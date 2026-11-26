@@ -9,6 +9,7 @@ description = "DeckZ document model: presentations, masters, layouts, slides, sh
 workspace = true
 
 [dependencies]
+craft-drawingml = { workspace = true }
 deckz-geom = { workspace = true }
 deckz-color = { workspace = true }
 serde = { workspace = true }
