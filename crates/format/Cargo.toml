@@ -9,8 +9,10 @@ description = "DeckZ native file format (.deckz: zip of a JSON manifest plus med
 workspace = true
 
 [dependencies]
+craft-deckz-format = { workspace = true }
+craft-rtf = { workspace = true }
 deckz-model = { workspace = true }
-serde = { workspace = true }
+
+[dev-dependencies]
 serde_json = { workspace = true }
 zip = { workspace = true }
-thiserror = { workspace = true }

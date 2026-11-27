@@ -1,6 +1,13 @@
+actions.lock
 ci.yml
 freebsd.yml
+house-rules.yml
+lockfile.yml
+nightly-macos.yml
+nightly-sign.yml
+nightly.yml
 nix.yml
 packaging-lint.yml
 release.yml
+sonarcloud.yml
 windows-arm64.yml

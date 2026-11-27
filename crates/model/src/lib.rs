@@ -12,7 +12,7 @@ pub mod bidi;
 pub mod chart;
 pub mod defaults;
 pub mod edit;
-pub mod numfmt;
+pub use craft_drawingml::numfmt;
 pub mod resolve;
 pub mod style;
 pub mod table;
@@ -231,6 +231,8 @@ pub struct MediaClip {
     pub video: bool,
     /// Poster frame image.
     pub poster: Option<MediaId>,
+    /// Crop of the picture (left, top, right, bottom as fractions), PowerPoint's `srcRect` on the video.
+    pub crop: [f64; 4],
     pub trim_start_ms: u32,
     pub trim_end_ms: u32,
     pub fade_in_ms: u32,
@@ -250,6 +252,16 @@ pub struct MediaClip {
     /// Probed picture size of a video in pixels (0 = unknown).
     pub width: u32,
     pub height: u32,
+}
+
+impl MediaClip {
+    /// Whether the clip's frame (an audio icon, or a video's poster) stays out of the
+    /// show picture. `playing` is true while the voice exists and has not ended.
+    /// Audio with "Hide During Show" set stays hidden even while it plays; video with
+    /// "Hide While Not Playing" set shows its frame while it plays.
+    pub fn hidden_during_show(&self, playing: bool) -> bool {
+        self.hide_while_not_playing && (!self.video || !playing)
+    }
 }
 
 /// One ink stroke (Draw tab): points in slide coordinates with pressure (`0..=1`,
@@ -439,6 +451,11 @@ impl Default for Shape {
 }
 
 impl Shape {
+    /// A stand-in shape for laying out one table cell's `body`: a table, so the cell's text takes
+    /// the master's other-text style as PowerPoint's does.
+    pub fn table_cell(body: text::TextBody) -> Shape {
+        Shape { text: Some(body), kind: ShapeKind::Table(Table::default()), ..Default::default() }
+    }
     pub fn is_placeholder(&self) -> bool {
         self.ph.is_some()
     }
@@ -619,6 +636,9 @@ pub struct Slide {
     pub animations: Vec<Animation>,
     /// Speaker notes.
     pub notes: TextBody,
+    /// Whether the slide has an associated notes slide even if its text is empty.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub has_notes_slide: bool,
     pub comments: Vec<Comment>,
     /// `clrMapOvr`: a colour map replacing the layout's or master's (`bg1`→`dk1`…); None follows
     /// the layout.
@@ -645,6 +665,7 @@ impl Default for Slide {
             transition: None,
             animations: vec![],
             notes: TextBody::default(),
+            has_notes_slide: false,
             comments: vec![],
             color_map: None,
             tags: vec![],
@@ -1059,13 +1080,13 @@ impl Presentation {
         self.slides.iter().position(|s| s.id == id)
     }
     pub fn slide(&self, id: SlideId) -> Option<&Slide> {
-        self.slides.iter().find(|s| s.id == id).map(|s| s.as_ref())
+        self.slides.iter().find(|s| s.id == id).map(AsRef::as_ref)
     }
     pub fn slide_mut(&mut self, id: SlideId) -> Option<&mut Slide> {
         self.slides.iter_mut().find(|s| s.id == id).map(Arc::make_mut)
     }
     pub fn slide_at(&self, i: usize) -> Option<&Slide> {
-        self.slides.get(i).map(|s| s.as_ref())
+        self.slides.get(i).map(AsRef::as_ref)
     }
     /// Master and layout for a layout id.
     pub fn layout(&self, id: LayoutId) -> Option<(&Master, &Layout)> {
@@ -1079,7 +1100,7 @@ impl Presentation {
         self.masters.first().map(|m| (m.as_ref(), m.layouts.first()))
     }
     pub fn first_master(&self) -> Option<&Master> {
-        self.masters.first().map(|m| m.as_ref())
+        self.masters.first().map(AsRef::as_ref)
     }
     pub fn media(&self, id: MediaId) -> Option<&MediaItem> {
         self.media.iter().find(|m| m.id == id)
@@ -1105,11 +1126,13 @@ impl Presentation {
     pub fn validate(&self) -> Vec<String> {
         let mut out = vec![];
         let mut seen = std::collections::HashSet::new();
+        // Indexed once: a per-slide scan of every layout is slides × layouts work.
+        let layouts: std::collections::HashSet<_> = self.masters.iter().flat_map(|m| m.layouts.iter().map(|l| l.id)).collect();
         for s in &self.slides {
             if !seen.insert(s.id) {
                 out.push(format!("duplicate slide id {}", s.id));
             }
-            if self.layout(s.layout).is_none() {
+            if !layouts.contains(&s.layout) {
                 out.push(format!("slide {} uses missing layout {}", s.id, s.layout));
             }
             let mut ids = std::collections::HashSet::new();
