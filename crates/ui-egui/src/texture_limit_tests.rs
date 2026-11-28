@@ -9,7 +9,7 @@ use crate::{Services, SlideApp};
 use deckz_engine::Session;
 
 fn harness(session: Session, size: egui::Vec2) -> egui_kittest::Harness<'static, SlideApp> {
-    egui_kittest::Harness::builder().with_size(size).build_ui_state(
+    egui_kittest::Harness::builder().with_context_setup(crate::framework::install_headless).with_size(size).build_ui_state(
         |ui, app: &mut SlideApp| {
             app.logic(ui.ctx());
             app.ui(ui);
@@ -57,6 +57,7 @@ fn a_very_tall_slide_in_the_editor_views_and_presenter_view() {
 /// notes and past the window.
 #[test]
 fn presenter_view_keeps_a_portrait_next_slide_in_its_column() {
+    let _gpu = crate::gpu_lock::gpu_lock();
     let mut h = harness(tall_deck(), egui::vec2(1280.0, 800.0));
     h.run_steps(3);
     h.state_mut().run("show.presenter", json!({"on": true})).unwrap();

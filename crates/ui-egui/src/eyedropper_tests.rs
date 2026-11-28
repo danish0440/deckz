@@ -4,6 +4,7 @@
 use deckz_engine::Session;
 use egui::{Event, Id, Key, Modifiers, PointerButton, Pos2};
 use egui_kittest::Harness;
+use egui_kittest::kittest::Queryable;
 use serde_json::json;
 
 use crate::eyedropper::{note_open_menu, request, result_waits_for, take_result};
@@ -14,7 +15,7 @@ fn harness() -> Harness<'static, SlideApp> {
     session.execute("slide.new", &json!({"layout": "blank"})).unwrap();
     session.execute("shape.insert", &json!({"preset": "rect", "rect": [100, 100, 200, 100]})).unwrap();
     session.execute("shape.fill", &json!({"color": "#ff0000"})).unwrap();
-    let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).build_ui_state(
+    let mut h = Harness::builder().with_context_setup(crate::framework::install_headless).with_size(egui::vec2(1400.0, 900.0)).build_ui_state(
         |ui, app: &mut SlideApp| {
             app.logic(ui.ctx());
             app.ui(ui);
@@ -25,8 +26,9 @@ fn harness() -> Harness<'static, SlideApp> {
     h
 }
 
+/// Test helper: stable unique id for the eyedropper test menu.
 fn menu() -> Id {
-    Id::new("test-menu")
+    Id::unique("test-menu")
 }
 
 /// A colour menu asked for the Eyedropper.
@@ -55,6 +57,19 @@ fn click(h: &mut Harness<'static, SlideApp>, pos: Pos2) {
 
 fn selection(h: &Harness<'static, SlideApp>) -> Vec<u32> {
     h.state().session.doc().unwrap().selection.shapes.iter().map(|s| s.0).collect()
+}
+
+#[test]
+fn space_on_the_focused_slide_picks_no_colour() {
+    let mut h = harness();
+    ask(&mut h);
+    let on_shape = at(&h, 150.0, 150.0);
+    h.input_mut().events.push(Event::PointerMoved(on_shape));
+    h.run_steps(3);
+    assert!(h.ctx.memory(|m| m.has_focus(crate::framework::document_id())));
+    h.key_press(egui::Key::Space);
+    h.run_steps(3);
+    assert!(h.state().eyedropper.is_some() && !result_waits_for(&h.ctx, menu()));
 }
 
 #[test]
@@ -110,4 +125,42 @@ fn escape_and_a_click_off_the_slide_take_nothing() {
     request(&other.ctx);
     other.run_steps(3);
     assert!(other.state().eyedropper.is_none());
+}
+
+#[test]
+fn set_transparent_color_takes_the_colour_clicked_in_the_picture() {
+    // Red on the left half, blue on the right.
+    let pixels = (0..8).flat_map(|i| if i % 4 < 2 { [255, 0, 0, 255] } else { [0, 0, 255, 255] }).collect();
+    let png = deckz_render::Image { width: 4, height: 2, pixels }.to_png();
+    let mut session = Session::with_new();
+    session.execute("slide.new", &json!({"layout": "blank"})).unwrap();
+    let data = deckz_engine::cmd::base64_encode(&png);
+    session.execute("insert.picture", &json!({"data": data, "name": "a.png", "rect": [100, 100, 400, 200]})).unwrap();
+    let mut app = SlideApp::new(session, Services::default());
+    app.ui.tab = "Picture Format".into();
+    let mut h = Harness::builder().with_context_setup(crate::framework::install_headless).with_size(egui::vec2(1600.0, 1200.0)).build_ui_state(
+        |ui, app: &mut SlideApp| {
+            app.logic(ui.ctx());
+            app.ui(ui);
+        },
+        app,
+    );
+    h.run_steps(4);
+    // A colour menu opened earlier (Shape Fill, say) must not receive the colour.
+    note_open_menu(&h.ctx, menu());
+    h.get_by_label("Color").click();
+    h.run_steps(3);
+    h.get_by_label("Set Transparent Color").click();
+    h.run_steps(3);
+    assert!(h.state().eyedropper.is_some(), "the command arms the pointer");
+    let blue_half = at(&h, 450.0, 200.0);
+    click(&mut h, blue_half);
+    assert!(h.state().eyedropper.is_none(), "one click ends it");
+    assert!(!result_waits_for(&h.ctx, menu()), "the colour went to the picture, not to another menu");
+    let doc = h.state().session.doc().unwrap();
+    let clear = doc.shapes().iter().find_map(|sh| match &sh.kind {
+        deckz_model::ShapeKind::Picture { fill } => Some(fill.adjust.clear_color),
+        _ => None,
+    });
+    assert_eq!(clear, Some(Some(deckz_color::Rgba::rgb(0, 0, 255))));
 }
