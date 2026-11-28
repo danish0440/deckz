@@ -22,13 +22,17 @@ fn harness() -> (Harness<'static, SlideApp>, usize) {
     s.set_active(0);
     s.execute("review.compare", &json!({"name": "Q3 review.deckz", "data": rev})).unwrap();
     let app = SlideApp::new(s, Services::default());
-    let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
-        |ui, app: &mut SlideApp| {
-            app.logic(ui.ctx());
-            app.ui(ui);
-        },
-        app,
-    );
+    let mut h = Harness::builder()
+        .with_context_setup(crate::framework::install_headless)
+        .with_size(egui::vec2(1400.0, 900.0))
+        .with_step_dt(1.0 / 60.0)
+        .build_ui_state(
+            |ui, app: &mut SlideApp| {
+                app.logic(ui.ctx());
+                app.ui(ui);
+            },
+            app,
+        );
     h.run_steps(4);
     (h, n)
 }
@@ -51,8 +55,21 @@ fn pane_opens_lists_changes_and_accept_all_applies_them() {
 }
 
 #[test]
+fn reject_all_empties_the_pane_and_keeps_the_deck() {
+    let (mut h, n) = harness();
+    let doc = h.state().session.active().unwrap().doc.clone();
+    h.get_by_label_contains("Reject All").click();
+    h.run_steps(3);
+    let st = h.state().session.active().unwrap();
+    assert!(std::sync::Arc::ptr_eq(&doc, &st.doc), "nothing applied");
+    assert_eq!(st.doc.slides.len(), n);
+    assert!(h.query_by_label("No differences left.").is_some());
+}
+
+#[test]
 #[ignore = "writes a screenshot for review"]
 fn screenshot() {
+    let _gpu = crate::gpu_lock::gpu_lock();
     let (mut h, _) = harness();
     // Review tab.
     h.state_mut().ui.tab = "Review".into();

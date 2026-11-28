@@ -9,14 +9,10 @@ description = "DeckZ media: probing, audio decoding (MP3, AAC/M4A, WAV, AIFF, FL
 workspace = true
 
 [dependencies]
-deckz-isobmff = { workspace = true }
-deckz-matroska = { workspace = true }
-deckz-ogg = { workspace = true }
-deckz-opus = { workspace = true }
-deckz-h264 = { workspace = true }
-deckz-hevc = { workspace = true }
-deckz-vp9 = { workspace = true }
-deckz-av1 = { workspace = true }
+# Containers (MP4/MOV, Matroska/WebM, Ogg), the Opus decoder and the video decoders, shared with the other Craft apps.
+craft-media = { workspace = true, features = ["isobmff", "matroska", "ogg"] }
+craft-audio = { workspace = true }
+craft-video = { workspace = true }
 thiserror = { workspace = true }
 log = { workspace = true }
 image = { workspace = true }

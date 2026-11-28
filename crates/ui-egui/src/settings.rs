@@ -127,11 +127,12 @@ mod tests {
     fn saving_round_trips_and_leaves_no_temporary_file() {
         let d = dir("save");
         let ui = UiState { zoom: Some(1.5), recent: vec!["/a.pptx".into()], ..Default::default() };
-        let prefs = Prefs { author: "Ann".into(), ..Default::default() };
+        let prefs = Prefs { author: "Ann".into(), units: deckz_geom::Unit::Centimeters, ..Default::default() };
         save(&d.join("nested"), &ui, &prefs);
         let (u, p) = load(&d.join("nested"));
         assert_eq!(u.unwrap().zoom, Some(1.5));
-        assert_eq!(p.unwrap().author, "Ann");
+        let p = p.unwrap();
+        assert_eq!((p.author.as_str(), p.units), ("Ann", deckz_geom::Unit::Centimeters));
         let names: Vec<String> =
             std::fs::read_dir(d.join("nested")).unwrap().flatten().map(|e| e.file_name().to_string_lossy().to_string()).collect();
         assert!(names.iter().all(|n| !n.ends_with(".tmp")), "{names:?}");
@@ -156,13 +157,16 @@ mod tests {
             let mut app = crate::SlideApp::new(deckz_engine::Session::with_new(), crate::Services::default());
             // The second case is not sanitized: the canvas keeps a stray zoom in range itself.
             app.ui = ui;
-            let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1200.0, 800.0)).build_ui_state(
-                |ui, app: &mut crate::SlideApp| {
-                    app.logic(ui.ctx());
-                    app.ui(ui);
-                },
-                app,
-            );
+            let mut h = egui_kittest::Harness::builder()
+                .with_context_setup(crate::framework::install_headless)
+                .with_size(egui::vec2(1200.0, 800.0))
+                .build_ui_state(
+                    |ui, app: &mut crate::SlideApp| {
+                        app.logic(ui.ctx());
+                        app.ui(ui);
+                    },
+                    app,
+                );
             h.run_steps(4);
             assert!(h.state().canvas_scale <= *crate::ZOOM_RANGE.end() + 1e-3, "{}", h.state().canvas_scale);
         }
